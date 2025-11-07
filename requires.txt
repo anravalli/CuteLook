@@ -1,0 +1,7 @@
+scipy 
+ftfy 
+accelerate
+huggingface-hub==0.26.2 
+transformers==4.46.1 
+tokenizers==0.20.1 
+diffusers==0.31.0
