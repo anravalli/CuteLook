@@ -4,6 +4,21 @@ from functools import wraps
 class TestFailedException(BaseException): ...
 
 
+# def TestFunctionMonkey(test, orig, fake):
+#     @wraps(test)
+#     def TestWrapper():
+#         orig = fake
+#         print(f"Running test: {test.__name__}")
+#         try:
+#             test()
+#             print("PASS")
+#         except TestFailedException as e:
+#             print("FAILED")
+#             raise e
+#
+#     return TestWrapper
+
+
 def TestFunction(test):
     @wraps(test)
     def TestWrapper():

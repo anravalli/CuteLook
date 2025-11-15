@@ -20,37 +20,31 @@ class FloatingImageWidget(QWidget):
     def __init__(self, image_path, parent=None):
         super().__init__(parent)
 
-        # --- Configurazione Base ---
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setWindowFlags(Qt.FramelessWindowHint)
 
-        # Variabili per il trascinamento
         self._drag_position = QPoint()
 
-        # --- Contenuto: Immagine ---
         self._pixmap = QPixmap(image_path)
         self._pixmap_size = self._pixmap.size()
 
         if self._pixmap.isNull():
-            # Caso di errore (gestione minimale)
             self.image_label = QLabel("Errore caricamento immagine", self)
             self.image_label.setAlignment(Qt.AlignCenter)
             self.image_label.setStyleSheet("background-color: lightgray; color: red;")
             self.setFixedSize(200, 100)
         else:
-            # Etichetta Immagine
             self.image_label = QLabel(self)
             self.image_label.setPixmap(self._pixmap)
             self.image_label.setScaledContents(True)
             self.setFixedSize(self._pixmap_size)
 
-            # Nota: La QLabel deve occupare l'intera area del FloatingImageWidget
             self.image_label.setGeometry(0, 0, self.width(), self.height())
 
-        # --- Crocetta di Chiusura (Close Button) ---
+        # --- Close Button ---
         self.close_button = QPushButton("X", self)
         self.close_button.setFixedSize(25, 25)
-        # Stile minimalista e rosso per la crocetta
+        # Close Button style
         self.close_button.setStyleSheet("""
             QPushButton {
                 background-color: rgba(255, 0, 0, 150); /* Rosso semitrasparente */

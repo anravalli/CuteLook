@@ -1,87 +1,78 @@
 #!/usr/bin/env python3
 
 import sys
-from PyQt5.QtWidgets import (
-    QApplication,
-    QMainWindow,
-    QLabel,
-    QVBoxLayout,
-    QHBoxLayout,
-    QWidget,
-    QPushButton,
-    QFileDialog,
-)
-from PyQt5.QtGui import QPixmap
-from PyQt5.QtCore import Qt, QPoint
+from pathlib import Path
 
 from ReferenceImageView import *
+from ReferenceBoardView import *
 from ReferenceBoard import *
 from UnitTesting import *
 
 
-class MainWindow(QMainWindow):
-    _opened_images = []
-    _image_hidden = False
-    _image_path = ""
+class CuteLook:
+    _boards: list[ReferenceBoard] = []
 
-    def __init__(self, image_path):
+    def __init__(self, board_path: str = "") -> None:
         super().__init__()
+        print(f"board_path: {board_path}")
+        self.boardFactory(board_path)
 
-        self.setWindowTitle("Applicazione con Widget Floating")
-        self.setGeometry(100, 100, 800, 600)
-        self._image_path = image_path
+    def boardFactory(self, path: str):
+        print(f"CuteLook - boardFactory ({path})")
+        # 1. create the model
+        board_model = None
+        board_path = Path(path)
+        is_new = True
 
-        # Contenuto di sfondo
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
-        main_layout = QVBoxLayout(central_widget)
-        main_button_layout = QHBoxLayout()
-        main_layout.addLayout(main_button_layout)
-
-        open_button = QPushButton("open image")
-        show_hide_button = QPushButton("show/hide")
-
-        open_button.clicked.connect(self.openImage)
-        show_hide_button.clicked.connect(self.showHideImages)
-
-        main_button_layout.addWidget(open_button)
-        main_button_layout.addWidget(show_hide_button)
-
-        main_layout.addStretch(1)
-        main_button_layout.addStretch(1)
-
-    def openImage(self):
-        file_path, _ = QFileDialog.getOpenFileName(
-            self,
-            "Seleziona File Immagine",
-            "",  # Directory di default (vuoto = ultima usata o home)
-            "Immagini (*.png *.jpg *.jpeg *.bmp *.gif)",  # Filtro dei file
-        )
-        self.addNewImage(file_path)
-
-    def addNewImage(self, image_path):
-        new_ref_image = ReferenceImageModel(image_path)
-        # Creazione e Posizionamento del Widget Immagine Floating
-        floating_image = FloatingImageWidget(image_path, parent=self)
-        floating_image.move(self.width() - floating_image.width() - 20, 20)
-        floating_image.show()
-        self._opened_images.append(floating_image)
-
-    def showHideImages(self):
-        if self._image_hidden:
-            for image in self._opened_images:
-                image.show()
-            self._image_hidden = False
+        if board_path.exists():
+            print(f"Opening board: {board_path}")
+            with open(board_path, "r", encoding="utf-8") as f:
+                json_board = f.read()
+            board_model = ReferenceBoardModel.model_validate_json(json_board)
+            is_new = False
         else:
-            for image in self._opened_images:
-                image.hide()
-            self._image_hidden = True
+            print("Creating new empty board")
+            board_model = ReferenceBoardModel()
+            board_path = Path("")
 
-    def setImageHide(self):
-        self._image_hidden = True
+        # 1.1 get the board id for this session
+        next_id = len(self._boards)
+
+        # 2. create the view
+        board_view = ReferenceBoardView(next_id)
+
+        # 3. create the controller
+        new_board = ReferenceBoard(next_id, board_model, board_view)
+        new_board.updateModifiedStatus(is_new)
+        new_board.setBoardPath(board_path)
+
+        # 4. connect relevant view's signals to manager (this)
+        print(f"CuteLook - connect signals")
+        board_view.close_board.connect(self.closeBoard)
+        board_view.new_board.connect(self.openBoard)
+
+        # 5. store the board
+        self._boards.append(new_board)
+
+    def closeBoard(self, board_id: int) -> None:
+        print("CuteLook - closeBoard")
+        try:
+            self._boards[board_id].close()
+            del self._boards[board_id]
+            if not len(self._boards):
+                print("Last board closed: exit")
+                # the one below should not be needed
+                # QApplication::instance().quit()
+
+        except Exception as e:
+            print(f'Excepltion cought while closing board "{board_id}":\n\t{e}')
+
+    # callback for UI open_board action
+    def openBoard(self, board_path: str) -> None:
+        print(f"CuteLook - openBoard ({board_path})")
+        self.boardFactory(board_path)
 
 
-# --- 3. Esecuzione dell'Applicazione ---
 if __name__ == "__main__":
     app = QApplication(sys.argv)
 
@@ -89,7 +80,5 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         ref_board = sys.argv[1]
         print(f"Loading refernece board: {ref_board}")
-
-    window = MainWindow(ref_board)
-    window.show()
+    cl = CuteLook(ref_board)
     sys.exit(app.exec_())
