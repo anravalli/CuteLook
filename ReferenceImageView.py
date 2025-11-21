@@ -10,22 +10,56 @@ from PyQt5.QtWidgets import (
     QFileDialog,
 )
 from PyQt5.QtGui import QPixmap
-from PyQt5.QtCore import Qt, QPoint
+from PyQt5.QtCore import Qt, QPoint, QSize
+
+from ReferenceBoardModels import *
+
+
+class FloatingControlButton(QPushButton):
+    def __init__(self, label: str = "X", parent: QWidget = None) -> None:
+        super().__init__(label, parent)
+        self.setFixedSize(25, 25)
+        # Close Button style
+        self.setStyleSheet("""
+            QPushButton {
+                background-color: rgba(255, 0, 0, 150); /* Rosso semitrasparente */
+                color: white;
+                border-radius: 12px; /* Rende il bottone circolare */
+                font-weight: bold;
+                border: 1px solid white;
+            }
+            QPushButton:hover {
+                background-color: red; /* Rosso solido all'hover */
+            }
+        """)
 
 
 class FloatingImageWidget(QWidget):
-    _pixmap = None
-    _pixmap_size = None
+    _pixmap: QPixmap = None
+    _pixmap_size: QSize = None
 
-    def __init__(self, image_path, parent=None):
+    _image_model: ReferenceImageModel = None
+    _image_name: str = ""
+
+    _close_button: FloatingControlButton = None
+    _hide_button: FloatingControlButton = None
+
+    def __init__(
+        self, image_name: str, image_model: ReferenceImageModel, parent: QWidget = None
+    ) -> None:
         super().__init__(parent)
+
+        # new_ref_image.view_size["w"] = floating_image.width()
+        # new_ref_image.view_size["h"] = floating_image.height()
+        #
+        # floating_image.move(self.width() - floating_image.width() - 20, 20)
 
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setWindowFlags(Qt.FramelessWindowHint)
 
         self._drag_position = QPoint()
 
-        self._pixmap = QPixmap(image_path)
+        self._pixmap = QPixmap(image_model.path)
         self._pixmap_size = self._pixmap.size()
 
         if self._pixmap.isNull():
@@ -41,44 +75,51 @@ class FloatingImageWidget(QWidget):
 
             self.image_label.setGeometry(0, 0, self.width(), self.height())
 
-        # --- Close Button ---
-        self.close_button = QPushButton("X", self)
-        self.close_button.setFixedSize(25, 25)
-        # Close Button style
-        self.close_button.setStyleSheet("""
-            QPushButton {
-                background-color: rgba(255, 0, 0, 150); /* Rosso semitrasparente */
-                color: white;
-                border-radius: 12px; /* Rende il bottone circolare */
-                font-weight: bold;
-                border: 1px solid white;
-            }
-            QPushButton:hover {
-                background-color: red; /* Rosso solido all'hover */
-            }
-        """)
+        self._image_model = image_model
+        self._image_name = image_name
 
-        self.close_button.clicked.connect(self.hide)
+        self.addControlButtons()
 
-        self._reposition_close_button()
+    def addControlButtons(self) -> None:
+        self._close_button = FloatingControlButton("X", self)
+        self._hide_button = FloatingControlButton("-", self)
 
-        self.close_button.hide()
+        self._close_button.clicked.connect(self.close)
+        self._hide_button.clicked.connect(self.hide)
+
+        self._reposition_buttons()
+
+        self.hide_buttons()
+
+    def hide_buttons(self):
+        self._close_button.hide()
+        self._hide_button.hide()
+
+    def show_buttons(self):
+        self._close_button.show()
+        self._hide_button.show()
 
     def hide(self):
         self.parent().setImageHide()
+        super().hide()
+
+    def close(self):
+        self.parent().closeImage(self._image_name)
         super().close()
 
-    def _reposition_close_button(self):
-        x = self.width() - self.close_button.width() - 5
+    def _reposition_buttons(self):
+        xc = self.width() - self._close_button.width() - 5
+        xh = xc - self._hide_button.width() - 5
         y = 5
-        self.close_button.move(x, y)
+        self._close_button.move(xc, y)
+        self._hide_button.move(xh, y)
 
     def enterEvent(self, event):
-        self.close_button.show()
+        self.show_buttons()
         super().enterEvent(event)
 
     def leaveEvent(self, event):
-        self.close_button.hide()
+        self.hide_buttons()
         super().leaveEvent(event)
 
     def mousePressEvent(self, event):
@@ -103,8 +144,8 @@ class FloatingImageWidget(QWidget):
         )
 
         self.image_label.setPixmap(scaled_pixmap)
-        # self.setFixedSize(self._pixmap.size())
-        self.image_label.setGeometry(0, 0, new_size.width(), new_size.height())
-        self._reposition_close_button()
+        self.setFixedSize(new_size)
+        # self.image_label.setGeometry(0, 0, new_size.width(), new_size.height())
+        self._reposition_buttons()
         self._pixmap_size = new_size
         event.accept()

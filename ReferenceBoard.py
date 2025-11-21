@@ -22,10 +22,14 @@ class ReferenceBoard:
         self._reference_board = model
         self._board_window = view
         self._board_window.setWindowTitle(model.board_name)
+        # self._board_window.installEventFilter()
 
-        self._board_window.add_image.connect(self.addImage)
+        self._board_window.add_image.connect(self.addNewImage)
+        self._board_window.close_image.connect(self.deleteImage)
         self._board_window.save_board.connect(self.save)
-        # self._board_window.close_board.connect(self.close)
+
+        self.loadRefImages()
+
         self._board_window.show()
 
     def view(self) -> ReferenceBoardView:
@@ -47,7 +51,8 @@ class ReferenceBoard:
 
         save_to = self._board_path
         if save_to == pathlib.Path("") or change_name:
-            save_to = self._board_window.openSaveDialog()
+            save_to = pathlib.Path(self._board_window.openSaveDialog())
+            print(f"(now) saving to: {save_to}")
             if save_to == pathlib.Path(""):
                 # abort
                 return
@@ -72,29 +77,65 @@ class ReferenceBoard:
     #     self.save()
 
     # need unit test
-    def close(self) -> None:
+    def close(self) -> bool:
         print("ReferenceBoard - closeBoard")
         if self._modified:
-            self._modified = not self._board_window.confirmClose()
+            reply = self._board_window.confirmClose()
+            print(f"reply: {reply}")
+            self._modified = not reply
 
-        if not self._modified:
-            self._board_window.close()  # may be a loop here
+        print(f"_modified: {self._modified}")
+        close_ok = not self._modified
+        if close_ok:
+            print("call close")
+            # self._board_window.close()  # may be a loop here
+            self._board_window.deleteLater()
+
+        return close_ok
+
+    def loadRefImages(self) -> None:
+        for image_name, image_model in self._reference_board.reference_images.items():
+            # assert image_name not in self._reference_board.reference_images.keys()
+            path = pathlib.Path(image_model.path)
+            if path.exists() and path.is_file():
+                # create view
+                self._board_window.addImage(image_name, image_model)
+            else:
+                # show warning
+                self._board_window.showMissingImageWarning(image_name, image_model.path)
 
     # need unit test
-    def addImage(self, name: str, new_image: ReferenceImageModel) -> None:
-        print(f'adding image "{name}"')
+    def addNewImage(self, image_path: pathlib.Path) -> None:
+        # check file path
+        if not (image_path.exists() and image_path.is_file()):
+            print(f"ERROR: invalid path: {pathlib.Path}")
+            raise Exception("invalid path")
+        print(f'adding image "{image_path}"')
+
+        # get a valid image name
+        image_name = image_path.stem
         i = 1
-        while name in self._reference_board.reference_images.keys():
-            name = f"{name}-{i}"
+        while image_name in self._reference_board.reference_images.keys():
+            image_name = f"{image_name}-{i}"
             i += 1
-        self._reference_board.reference_images[name] = new_image
+
+        # create the image model and initialize it
+        image_model = ReferenceImageModel()
+        image_model.path = image_path.absolute().as_posix()
+
+        # create the view
+        self._board_window.addImage(image_name, image_model)
+
+        # add the image to the board and set it to modified
+        self._reference_board.reference_images[image_name] = image_model
         self.updateModifiedStatus(True)
-        print(f'added image "{name}"')
+        print(f'added image "{image_name}"')
 
     # need unit test
     def deleteImage(self, name: str) -> None:
         # exception shall be handled by caller
         del self._reference_board.reference_images[name]
+        self.updateModifiedStatus(True)
 
     # need unit test
     def rename(new_name: str) -> None:

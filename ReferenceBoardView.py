@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import (
     QFileDialog,
     QMessageBox,
 )
-from PyQt5.QtGui import QPixmap
+from PyQt5.QtGui import QPixmap, QCloseEvent
 from PyQt5.QtCore import Qt, QPoint, pyqtSignal
 
 from ReferenceImageView import *
@@ -22,11 +22,12 @@ from UnitTesting import *
 
 
 class ReferenceBoardView(QMainWindow):
-    _opened_images: list = []
+    _opened_images: dict[str, ReferenceImageModel] = {}
     _image_hidden: bool = False
     board_id: int = 0
 
-    add_image: typing.ClassVar[pyqtSignal] = pyqtSignal(str, ReferenceImageModel)
+    add_image: typing.ClassVar[pyqtSignal] = pyqtSignal(pathlib.Path)
+    close_image: typing.ClassVar[pyqtSignal] = pyqtSignal(str)
 
     save_board: typing.ClassVar[pyqtSignal] = pyqtSignal(bool)
     # open_board: typing.ClassVar[pyqtSignal] = pyqtSignal()
@@ -94,6 +95,14 @@ class ReferenceBoardView(QMainWindow):
 
     def closeBoard(self):
         self.close_board.emit(self._board_id)
+        # close_event = QCloseEvent()
+        # QApplication.postEvent(self, close_event)
+
+    # TODO manage close event
+    def closeEvent(self, event: QCloseEvent):
+        print(f"closeEvent - board window: {self._board_id}")
+        self.close_board.emit(self._board_id)
+        event.ignore()
 
     def confirmClose(self) -> bool:
         reply = QMessageBox.question(
@@ -103,6 +112,9 @@ class ReferenceBoardView(QMainWindow):
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No,
         )
+        print(f"reply: {reply}")
+        print(f"NO: {QMessageBox.No}")
+        print(f"Yes: {QMessageBox.Yes}")
         return reply == QMessageBox.Yes
 
     def saveBoard(self) -> None:
@@ -129,40 +141,40 @@ class ReferenceBoardView(QMainWindow):
         )
         # build image model
         if file_path != "":
-            self.addNewImage(file_path)
+            path = pathlib.Path(file_path)
+            self.add_image.emit(path)
 
-    def addNewImage(self, image_path):
-        path = pathlib.Path(image_path)
-        floating_image = FloatingImageWidget(image_path, parent=self)
+    def addImage(self, image_name: str, image_model: ReferenceImageModel):
+        floating_image = FloatingImageWidget(image_name, image_model, parent=self)
 
-        new_ref_image = ReferenceImageModel()
-        new_ref_image.path = path.absolute().as_posix()
-        new_ref_image.view_size["w"] = floating_image.width()
-        new_ref_image.view_size["h"] = floating_image.height()
-
-        floating_image.move(self.width() - floating_image.width() - 20, 20)
-        self.add_image.emit(path.stem, new_ref_image)
-        self._opened_images.append(floating_image)
+        self._opened_images[image_name] = floating_image
 
         floating_image.show()
 
+    def closeImage(self, image_name: str):
+        img = self._opened_images.pop(image_name)
+        img.deleteLater()
+        self.close_image.emit(image_name)
+
+    def showMissingImageWarning(self, name: str, path: str) -> None:
+        title = "Image file not found"
+        message = (
+            f'Can\'t open image "{name}".\n Please check if the path is valid:\n{path}'
+        )
+        dialog = QMessageBox.warning(self, title, message)
+
     def showHideImages(self):
         if self._image_hidden:
-            for image in self._opened_images:
+            for image in self._opened_images.values():
                 image.show()
             self._image_hidden = False
         else:
-            for image in self._opened_images:
+            for image in self._opened_images.values():
                 image.hide()
             self._image_hidden = True
 
     def setImageHide(self):
         self._image_hidden = True
-
-    # TODO manage close event
-    # def closeEvent(self, event: QCloseEvent):
-    #     self.close_board.emit(path.stem, new_ref_image)
-    #     event.ignore()
 
 
 if __name__ == "__main__":

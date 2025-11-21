@@ -10,7 +10,7 @@ from UnitTesting import *
 
 
 class CuteLook:
-    _boards: list[ReferenceBoard] = []
+    _boards: dict[int, ReferenceBoard] = {}
 
     def __init__(self, board_path: str = "") -> None:
         super().__init__()
@@ -24,7 +24,7 @@ class CuteLook:
         board_path = Path(path)
         is_new = True
 
-        if board_path.exists():
+        if board_path.exists() and board_path.is_file():
             print(f"Opening board: {board_path}")
             with open(board_path, "r", encoding="utf-8") as f:
                 json_board = f.read()
@@ -52,13 +52,15 @@ class CuteLook:
         board_view.new_board.connect(self.openBoard)
 
         # 5. store the board
-        self._boards.append(new_board)
+        self._boards[next_id] = new_board
 
     def closeBoard(self, board_id: int) -> None:
         print("CuteLook - closeBoard")
         try:
-            self._boards[board_id].close()
-            del self._boards[board_id]
+            if self._boards[board_id].close():
+                print(f"removing board {board_id}")
+                del self._boards[board_id]
+                print(f"...removed")
             if not len(self._boards):
                 print("Last board closed: exit")
                 # the one below should not be needed
