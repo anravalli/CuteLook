@@ -10,8 +10,11 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QFileDialog,
     QMessageBox,
+    QAction,
+    QToolBar,
+    QStyle,
 )
-from PyQt5.QtGui import QPixmap, QCloseEvent
+from PyQt5.QtGui import QPixmap, QCloseEvent, QIcon
 from PyQt5.QtCore import Qt, QPoint, pyqtSignal
 
 from ReferenceImageView import *
@@ -24,6 +27,7 @@ from UnitTesting import *
 class ReferenceBoardView(QMainWindow):
     _opened_images: dict[str, ReferenceImageModel] = {}
     _image_hidden: bool = False
+    # _toolbar: QToolBar = None
     board_id: int = 0
 
     add_image: typing.ClassVar[pyqtSignal] = pyqtSignal(pathlib.Path)
@@ -45,27 +49,61 @@ class ReferenceBoardView(QMainWindow):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         main_layout = QVBoxLayout(central_widget)
+
+        toolbar = self.addToolBar("Main Toolbar")
+        # toolbar = self.menuBar("")
+        # new_action = QAction(
+        #     QIcon.fromTheme("document-new", QIcon("new.png")), "New Board", self
+        # )
+        new_board_action = QAction(
+            self.style().standardIcon(QStyle.SP_FileIcon), "New Board", self
+        )
+        new_board_action.setStatusTip("Create a new board")
+
+        open_board_action = QAction(
+            self.style().standardIcon(QStyle.SP_DirOpenIcon),
+            "&Apri File...",
+            self,
+        )
+        open_board_action.setStatusTip("Open an existing board")
+
+        save_board_action = QAction(
+            QIcon.fromTheme("document-save", QIcon("save.png")), "Save Board", self
+        )
+        save_board_action.setStatusTip("Save current board")
+
+        new_board_action.triggered.connect(self.newBoard)
+        open_board_action.triggered.connect(self.openBoard)
+        # close_board_action.triggered.connect(self.closeBoard)
+        save_board_action.triggered.connect(self.saveBoard)
+        # save_as_board_action.triggered.connect(self.saveBoardAs)
+
+        toolbar.addAction(new_board_action)
+        toolbar.addAction(open_board_action)
+        toolbar.addAction(save_board_action)
+
+        main_layout.addWidget(toolbar)
         main_button_layout = QHBoxLayout()
         main_layout.addLayout(main_button_layout)
 
         # reference board
-        open_board_button = QPushButton("open")
-        new_board_button = QPushButton("new")
-        close_close_button = QPushButton("close")
-        save_board_button = QPushButton("save")
-        save_board_as_button = QPushButton("save as")
-
-        new_board_button.clicked.connect(self.newBoard)
-        open_board_button.clicked.connect(self.openBoard)
-        save_board_button.clicked.connect(self.saveBoard)
-        save_board_as_button.clicked.connect(self.saveBoardAs)
-        close_close_button.clicked.connect(self.closeBoard)
-
-        main_button_layout.addWidget(new_board_button)
-        main_button_layout.addWidget(open_board_button)
-        main_button_layout.addWidget(save_board_button)
-        main_button_layout.addWidget(save_board_as_button)
-        main_button_layout.addWidget(close_close_button)
+        # open_board_button = QPushButton("open")
+        # new_board_button = QPushButton("new")
+        # close_close_button = QPushButton("close")
+        # save_board_button = QPushButton("save")
+        # save_board_as_button = QPushButton("save as")
+        #
+        # new_board_button.clicked.connect(self.newBoard)
+        # open_board_button.clicked.connect(self.openBoard)
+        # save_board_button.clicked.connect(self.saveBoard)
+        # save_board_as_button.clicked.connect(self.saveBoardAs)
+        # close_close_button.clicked.connect(self.closeBoard)
+        #
+        # main_button_layout.addWidget(new_board_button)
+        # main_button_layout.addWidget(open_board_button)
+        # main_button_layout.addWidget(save_board_button)
+        # main_button_layout.addWidget(save_board_as_button)
+        # main_button_layout.addWidget(close_close_button)
 
         # reference images
         open_button = QPushButton("open image")
@@ -98,7 +136,6 @@ class ReferenceBoardView(QMainWindow):
         # close_event = QCloseEvent()
         # QApplication.postEvent(self, close_event)
 
-    # TODO manage close event
     def closeEvent(self, event: QCloseEvent):
         print(f"closeEvent - board window: {self._board_id}")
         self.close_board.emit(self._board_id)
