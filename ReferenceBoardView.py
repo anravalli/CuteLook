@@ -24,21 +24,28 @@ from ReferenceBoardModels import *
 from UnitTesting import *
 
 
+class ReferenceBoardAction:
+    icon: QIcon = None
+    action: QAction = None
+    text: str = ""
+    tooltip: str = ""
+
+
 class ReferenceBoardView(QMainWindow):
     _opened_images: dict[str, ReferenceImageModel] = {}
     _image_hidden: bool = False
-    # _toolbar: QToolBar = None
+    _use_os_theme: bool = False
+    _board_actions: dict[str, ReferenceBoardAction] = {}
+
     board_id: int = 0
 
     add_image: typing.ClassVar[pyqtSignal] = pyqtSignal(pathlib.Path)
     close_image: typing.ClassVar[pyqtSignal] = pyqtSignal(str)
 
     save_board: typing.ClassVar[pyqtSignal] = pyqtSignal(bool)
-    # open_board: typing.ClassVar[pyqtSignal] = pyqtSignal()
     close_board: typing.ClassVar[pyqtSignal] = pyqtSignal(int)
     new_board: typing.ClassVar[pyqtSignal] = pyqtSignal(str)
 
-    # def __init__(self, ctl: ReferenceBoard):
     def __init__(self, board_id: int):
         super().__init__()
 
@@ -46,77 +53,158 @@ class ReferenceBoardView(QMainWindow):
 
         self.setGeometry(100, 100, 800, 600)
 
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
-        main_layout = QVBoxLayout(central_widget)
+        board_area = QWidget()
+        board_area.setStyleSheet("background-color: #232323;")
 
+        self.setCentralWidget(board_area)
+
+        toolbar = self.createToolbar()
+        # connect actions signals do board callbacks
+        self._board_actions["new_board"].action.triggered.connect(self.newBoard)
+        self._board_actions["open_board"].action.triggered.connect(self.openBoard)
+        self._board_actions["close_board"].action.triggered.connect(self.closeBoard)
+        self._board_actions["save_board"].action.triggered.connect(self.saveBoard)
+        self._board_actions["save_as_board"].action.triggered.connect(self.saveBoardAs)
+        self._board_actions["add_image"].action.triggered.connect(self.openImage)
+        self._board_actions["show_hide_image"].action.triggered.connect(
+            self.showHideImages
+        )
+
+    def createToolbar(self, themed=False) -> QToolBar:
         toolbar = self.addToolBar("Main Toolbar")
-        # toolbar = self.menuBar("")
-        # new_action = QAction(
-        #     QIcon.fromTheme("document-new", QIcon("new.png")), "New Board", self
-        # )
-        new_board_action = QAction(
-            self.style().standardIcon(QStyle.SP_FileIcon), "New Board", self
+        toolbar.setIconSize(QSize(24, 16))
+        # create actions
+        self.configureBoardActions()
+        # add actions to toolbar
+        for board_action in self._board_actions.values():
+            if board_action == None:
+                toolbar.addSeparator()
+                continue
+            toolbar.addAction(board_action.action)
+
+        return toolbar
+
+    def configureBoardActions(self) -> None:
+        self.initBoardActions()
+
+        # add icons based on the current configuration
+        if self._use_os_theme:
+            print("calling addBoardActionsIconsFromTheme")
+            self.addBoardActionsIconsFromTheme()
+        else:
+            print("calling initBoardActions")
+            self.addBoardActionsIconsCustom()
+
+        # create actions
+        self.createBoardActions()
+
+    def createBoardActions(self) -> None:
+        for board_action in self._board_actions.values():
+            if not board_action == None:
+                print(f'action "{board_action.text}"')
+                board_action.action = QAction(
+                    board_action.icon, board_action.text, self
+                )
+                board_action.action.setStatusTip(board_action.tooltip)
+
+    def initBoardActions(self) -> None:
+        # TODO read actions configuration from some configuration resource
+        print("initBoardActions")
+        self._board_actions["new_board"] = ReferenceBoardAction()
+        self._board_actions["new_board"].text = "New Board"
+        self._board_actions["new_board"].tooltip = "Create a new board"
+
+        self._board_actions["open_board"] = ReferenceBoardAction()
+        self._board_actions["open_board"].text = "Open Board"
+        self._board_actions["open_board"].tooltip = "Open an existing board"
+
+        self._board_actions["save_board"] = ReferenceBoardAction()
+        self._board_actions["save_board"].text = "Save Board"
+        self._board_actions["save_board"].tooltip = "Save current board"
+
+        self._board_actions["save_as_board"] = ReferenceBoardAction()
+        self._board_actions["save_as_board"].text = "Save Board As"
+        self._board_actions["save_as_board"].tooltip = "Save current board copy"
+
+        self._board_actions["close_board"] = ReferenceBoardAction()
+        self._board_actions["close_board"].text = "Close Board"
+        self._board_actions["close_board"].tooltip = "Close current board"
+
+        self._board_actions["separator"] = None
+
+        self._board_actions["add_image"] = ReferenceBoardAction()
+        self._board_actions["add_image"].text = "Add Image"
+        self._board_actions["add_image"].tooltip = "Add a new reference image"
+
+        self._board_actions["show_hide_image"] = ReferenceBoardAction()
+        self._board_actions["show_hide_image"].text = "Show/Hide Images"
+        self._board_actions["show_hide_image"].tooltip = "Show/Hide all images"
+
+    def addBoardActionsIconsCustom(self) -> None:
+        print("addBoardActionsIconsCustom")
+        self._board_actions["new_board"].icon = QIcon("icons/add-document.svg")
+        self._board_actions["open_board"].icon = QIcon("icons/folder-open.svg")
+        self._board_actions["close_board"].icon = QIcon("icons/cross.svg")
+        self._board_actions["save_board"].icon = QIcon("icons/disk.svg")
+        self._board_actions["save_as_board"].icon = QIcon("icons/floppy-disk-pen.svg")
+        print(f'add_image icon "{self._board_actions["add_image"].icon}"')
+        self._board_actions["add_image"].icon = QIcon("icons/add-image.svg")
+        print(f'add_image icon "{self._board_actions["add_image"].icon}"')
+        self._board_actions["show_hide_image"].icon = QIcon("icons/eye.svg")
+        self._board_actions["show_hide_image"].icon2 = QIcon("icons/eye-crossed.svg")
+
+    def addBoardActionsIconsFromTheme(self) -> None:
+        self._board_actions["new_board"].icon = QIcon.fromTheme(
+            "document-new", QIcon("icons/")
         )
-        new_board_action.setStatusTip("Create a new board")
-
-        open_board_action = QAction(
-            self.style().standardIcon(QStyle.SP_DirOpenIcon),
-            "&Apri File...",
-            self,
+        self._board_actions["open_board"].icon = QIcon.fromTheme(
+            "document-new", QIcon("icons/")
         )
-        open_board_action.setStatusTip("Open an existing board")
-
-        save_board_action = QAction(
-            QIcon.fromTheme("document-save", QIcon("save.png")), "Save Board", self
+        self._board_actions["close_board"].icon = QIcon.fromTheme(
+            "document-new", QIcon("icons/")
         )
-        save_board_action.setStatusTip("Save current board")
+        self._board_actions["save_board"].icon = QIcon.fromTheme(
+            "document-save", QIcon("icons/save.png")
+        )
+        self._board_actions["save_as_board"].icon = QIcon.fromTheme(
+            "document-new", QIcon("icons/")
+        )
 
-        new_board_action.triggered.connect(self.newBoard)
-        open_board_action.triggered.connect(self.openBoard)
-        # close_board_action.triggered.connect(self.closeBoard)
-        save_board_action.triggered.connect(self.saveBoard)
-        # save_as_board_action.triggered.connect(self.saveBoardAs)
-
-        toolbar.addAction(new_board_action)
-        toolbar.addAction(open_board_action)
-        toolbar.addAction(save_board_action)
-
-        main_layout.addWidget(toolbar)
+    def addPopulateButtonsBar(self, main_layout: QVBoxLayout) -> None:
         main_button_layout = QHBoxLayout()
-        main_layout.addLayout(main_button_layout)
+        main_button_layout.addStretch(1)
 
-        # reference board
-        # open_board_button = QPushButton("open")
-        # new_board_button = QPushButton("new")
-        # close_close_button = QPushButton("close")
-        # save_board_button = QPushButton("save")
-        # save_board_as_button = QPushButton("save as")
-        #
-        # new_board_button.clicked.connect(self.newBoard)
-        # open_board_button.clicked.connect(self.openBoard)
-        # save_board_button.clicked.connect(self.saveBoard)
-        # save_board_as_button.clicked.connect(self.saveBoardAs)
-        # close_close_button.clicked.connect(self.closeBoard)
-        #
-        # main_button_layout.addWidget(new_board_button)
-        # main_button_layout.addWidget(open_board_button)
-        # main_button_layout.addWidget(save_board_button)
-        # main_button_layout.addWidget(save_board_as_button)
-        # main_button_layout.addWidget(close_close_button)
+        # reference board buttons
+        open_board_button = QPushButton("open")
+        new_board_button = QPushButton("new")
+        close_close_button = QPushButton("close")
+        save_board_button = QPushButton("save")
+        save_board_as_button = QPushButton("save as")
+
+        new_board_button.clicked.connect(self.newBoard)
+        open_board_button.clicked.connect(self.openBoard)
+        save_board_button.clicked.connect(self.saveBoard)
+        save_board_as_button.clicked.connect(self.saveBoardAs)
+        close_close_button.clicked.connect(self.closeBoard)
+
+        main_button_layout.addWidget(new_board_button)
+        main_button_layout.addWidget(open_board_button)
+        main_button_layout.addWidget(save_board_button)
+        main_button_layout.addWidget(save_board_as_button)
+        main_button_layout.addWidget(close_close_button)
 
         # reference images
         open_button = QPushButton("open image")
         show_hide_button = QPushButton("show/hide")
 
-        open_button.clicked.connect(self.openImage)
-        show_hide_button.clicked.connect(self.showHideImages)
-
         main_button_layout.addWidget(open_button)
         main_button_layout.addWidget(show_hide_button)
 
-        main_layout.addStretch(1)
-        main_button_layout.addStretch(1)
+        open_button.clicked.connect(self.openImage)
+        show_hide_button.clicked.connect(self.showHideImages)
+
+        # add button bar to main layout
+        main_layout.addLayout(main_button_layout)
 
     def openBoard(self) -> None:
         file_path, _ = QFileDialog.getOpenFileName(
@@ -133,8 +221,6 @@ class ReferenceBoardView(QMainWindow):
 
     def closeBoard(self):
         self.close_board.emit(self._board_id)
-        # close_event = QCloseEvent()
-        # QApplication.postEvent(self, close_event)
 
     def closeEvent(self, event: QCloseEvent):
         print(f"closeEvent - board window: {self._board_id}")
@@ -201,14 +287,17 @@ class ReferenceBoardView(QMainWindow):
         dialog = QMessageBox.warning(self, title, message)
 
     def showHideImages(self):
+        action = self._board_actions["show_hide_image"]
         if self._image_hidden:
             for image in self._opened_images.values():
                 image.show()
             self._image_hidden = False
+            action.action.setIcon(action.icon)
         else:
             for image in self._opened_images.values():
                 image.hide()
             self._image_hidden = True
+            action.action.setIcon(action.icon2)
 
     def setImageHide(self):
         self._image_hidden = True
