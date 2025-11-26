@@ -170,42 +170,6 @@ class ReferenceBoardView(QMainWindow):
             "document-new", QIcon("icons/")
         )
 
-    def addPopulateButtonsBar(self, main_layout: QVBoxLayout) -> None:
-        main_button_layout = QHBoxLayout()
-        main_button_layout.addStretch(1)
-
-        # reference board buttons
-        open_board_button = QPushButton("open")
-        new_board_button = QPushButton("new")
-        close_close_button = QPushButton("close")
-        save_board_button = QPushButton("save")
-        save_board_as_button = QPushButton("save as")
-
-        new_board_button.clicked.connect(self.newBoard)
-        open_board_button.clicked.connect(self.openBoard)
-        save_board_button.clicked.connect(self.saveBoard)
-        save_board_as_button.clicked.connect(self.saveBoardAs)
-        close_close_button.clicked.connect(self.closeBoard)
-
-        main_button_layout.addWidget(new_board_button)
-        main_button_layout.addWidget(open_board_button)
-        main_button_layout.addWidget(save_board_button)
-        main_button_layout.addWidget(save_board_as_button)
-        main_button_layout.addWidget(close_close_button)
-
-        # reference images
-        open_button = QPushButton("open image")
-        show_hide_button = QPushButton("show/hide")
-
-        main_button_layout.addWidget(open_button)
-        main_button_layout.addWidget(show_hide_button)
-
-        open_button.clicked.connect(self.openImage)
-        show_hide_button.clicked.connect(self.showHideImages)
-
-        # add button bar to main layout
-        main_layout.addLayout(main_button_layout)
-
     def openBoard(self) -> None:
         file_path, _ = QFileDialog.getOpenFileName(
             self,
