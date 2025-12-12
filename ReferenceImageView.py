@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QFileDialog,
 )
-from PyQt5.QtGui import QPixmap
+from PyQt5.QtGui import QPixmap, QPainter
 from PyQt5.QtCore import Qt, QPoint, QSize
 
 from ReferenceBoardModels import *
@@ -49,11 +49,6 @@ class FloatingImageWidget(QWidget):
     ) -> None:
         super().__init__(parent)
 
-        # new_ref_image.view_size["w"] = floating_image.width()
-        # new_ref_image.view_size["h"] = floating_image.height()
-        #
-        # floating_image.move(self.width() - floating_image.width() - 20, 20)
-
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setWindowFlags(Qt.FramelessWindowHint)
 
@@ -62,18 +57,7 @@ class FloatingImageWidget(QWidget):
         self._pixmap = QPixmap(image_model.path)
         self._pixmap_size = self._pixmap.size()
 
-        if self._pixmap.isNull():
-            self.image_label = QLabel("Errore caricamento immagine", self)
-            self.image_label.setAlignment(Qt.AlignCenter)
-            self.image_label.setStyleSheet("background-color: lightgray; color: red;")
-            self.setFixedSize(200, 100)
-        else:
-            self.image_label = QLabel(self)
-            self.image_label.setPixmap(self._pixmap)
-            self.image_label.setScaledContents(True)
-            self.setFixedSize(self._pixmap_size)
-
-            self.image_label.setGeometry(0, 0, self.width(), self.height())
+        self.setFixedSize(self._pixmap_size)
 
         self._image_model = image_model
         self._image_name = image_name
@@ -139,13 +123,14 @@ class FloatingImageWidget(QWidget):
     def wheelEvent(self, event):
         zoom_factor = 1.1 if event.angleDelta().y() > 0 else 1 / 1.1
         new_size = self._pixmap_size * zoom_factor
-        scaled_pixmap = self._pixmap.scaled(
-            new_size, Qt.KeepAspectRatio, Qt.SmoothTransformation
-        )
-
-        self.image_label.setPixmap(scaled_pixmap)
         self.setFixedSize(new_size)
-        # self.image_label.setGeometry(0, 0, new_size.width(), new_size.height())
         self._reposition_buttons()
         self._pixmap_size = new_size
         event.accept()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        scaled_pixmap = self._pixmap.scaled(
+            self._pixmap_size, Qt.KeepAspectRatio, Qt.SmoothTransformation
+        )
+        painter.drawPixmap(0, 0, scaled_pixmap)

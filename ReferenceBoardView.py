@@ -13,11 +13,15 @@ from PyQt5.QtWidgets import (
     QAction,
     QToolBar,
     QStyle,
+    QMenu,
+    QDialog,
+    QLineEdit,
 )
 from PyQt5.QtGui import QPixmap, QCloseEvent, QIcon
 from PyQt5.QtCore import Qt, QPoint, pyqtSignal
 
 from ReferenceImageView import *
+from CustomWidget import FloatingLineEdit
 
 # from ReferenceBoard import *
 from ReferenceBoardModels import *
@@ -38,6 +42,8 @@ class ReferenceBoardView(QMainWindow):
     _board_actions: dict[str, ReferenceBoardAction] = {}
 
     board_id: int = 0
+    _board_area: QWidget = None
+    _context_menu_pos: QPoint = None
 
     add_image: typing.ClassVar[pyqtSignal] = pyqtSignal(pathlib.Path)
     close_image: typing.ClassVar[pyqtSignal] = pyqtSignal(str)
@@ -45,6 +51,7 @@ class ReferenceBoardView(QMainWindow):
     save_board: typing.ClassVar[pyqtSignal] = pyqtSignal(bool)
     close_board: typing.ClassVar[pyqtSignal] = pyqtSignal(int)
     new_board: typing.ClassVar[pyqtSignal] = pyqtSignal(str)
+    rename_board: typing.ClassVar[pyqtSignal] = pyqtSignal(str)
 
     def __init__(self, board_id: int):
         super().__init__()
@@ -53,10 +60,10 @@ class ReferenceBoardView(QMainWindow):
 
         self.setGeometry(100, 100, 800, 600)
 
-        board_area = QWidget()
-        board_area.setStyleSheet("background-color: #232323;")
+        self._board_area = QWidget()
+        self._board_area.setStyleSheet("background-color: #232323;")
 
-        self.setCentralWidget(board_area)
+        self.setCentralWidget(self._board_area)
 
         toolbar = self.createToolbar()
         # connect actions signals do board callbacks
@@ -70,9 +77,50 @@ class ReferenceBoardView(QMainWindow):
             self.showHideImages
         )
 
+        self._board_area.setContextMenuPolicy(Qt.CustomContextMenu)
+        self._board_area.customContextMenuRequested.connect(self.showBoardContexMenu)
+
+    def showBoardContexMenu(self, point: QPoint) -> None:
+        context_menu = QMenu(self)
+        #     context_menu.setIcon("""
+        #     QMenu::icon {
+        #         width: 0px;
+        #         margin-left: -5px;
+        #     }
+        # """)
+
+        for board_action in self._board_actions.values():
+            if board_action == None:
+                context_menu.addSeparator()
+                continue
+            context_menu.addAction(board_action.action)
+        self.addAdditionalActions(context_menu)
+        self._context_menu_pos = point
+        context_menu.exec_(self._board_area.mapToGlobal(point))
+
+    def addAdditionalActions(self, context_menu: QMenu):
+        context_menu.addSeparator()
+        rename = QAction("Rename Board", self)
+        rename.triggered.connect(self.renameBoard)
+        context_menu.addAction(rename)
+
+    def renameBoard(self):
+        # dialog = QDialog()
+        line_edit = FloatingLineEdit(
+            "New board name", pos=self._context_menu_pos, parent=self
+        )
+
+        def accept_input():
+            self.rename_board.emit(line_edit.text())
+            line_edit.hide()
+
+        line_edit.returnPressed.connect(accept_input)
+
     def createToolbar(self, themed=False) -> QToolBar:
         toolbar = self.addToolBar("Main Toolbar")
         toolbar.setIconSize(QSize(24, 16))
+        # toolbar.setFloatable(True)
+        print(f"toolbar is floatable: {toolbar.isFloatable()}")
         # create actions
         self.configureBoardActions()
         # add actions to toolbar

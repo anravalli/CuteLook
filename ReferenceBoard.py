@@ -27,6 +27,7 @@ class ReferenceBoard:
         self._board_window.add_image.connect(self.addNewImage)
         self._board_window.close_image.connect(self.deleteImage)
         self._board_window.save_board.connect(self.save)
+        self._board_window.rename_board.connect(self.renameBoard)
 
         self.loadRefImages()
 
@@ -44,6 +45,11 @@ class ReferenceBoard:
             title = f"*{title}"
         self._modified = modified
         self._board_window.setWindowTitle(title)
+
+    def renameBoard(self, new_name):
+        if new_name != self._reference_board.board_name:
+            self._reference_board.board_name = new_name
+            self.updateModifiedStatus(True)
 
     def save(self, change_name: bool = False) -> None:
         print(f"saving board: {self._reference_board.board_name}")
