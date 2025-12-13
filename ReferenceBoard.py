@@ -12,8 +12,9 @@ class ReferenceBoard:
     _reference_board: ReferenceBoardModel = None
     _board_window: ReferenceBoardView = None
 
-    _board_path: pathlib.Path = "./unknown.refboard"
+    _board_path: pathlib.Path = pathlib.Path("./unknown.refboard")
     _modified: bool = False
+    _is_new: bool = False
 
     def __init__(
         self, board_id: int, model: ReferenceBoardModel, view: ReferenceBoardView
@@ -56,8 +57,12 @@ class ReferenceBoard:
         print(f"...to: {self._board_path}")
 
         save_to = self._board_path
-        if save_to == pathlib.Path("") or change_name:
-            save_to = pathlib.Path(self._board_window.openSaveDialog())
+        if self._is_new or change_name:
+            dirname = self._board_path.resolve().parent
+            save_to = (
+                str(dirname) + "/" + self._reference_board.board_name + ".refboard"
+            )
+            save_to = pathlib.Path(self._board_window.openSaveDialog(str(save_to)))
             print(f"(now) saving to: {save_to}")
             if save_to == pathlib.Path(""):
                 # abort

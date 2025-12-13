@@ -33,7 +33,9 @@ class CuteLook:
         else:
             print("Creating new empty board")
             board_model = ReferenceBoardModel()
-            board_path = Path("")
+            board_path = Path(
+                str(Path.home()) + "/" + board_model.board_name + ".refboard"
+            )
 
         # 1.1 get the board id for this session
         next_id = len(self._boards)
@@ -44,6 +46,7 @@ class CuteLook:
         # 3. create the controller
         new_board = ReferenceBoard(next_id, board_model, board_view)
         new_board.updateModifiedStatus(is_new)
+        new_board._is_new = is_new
         new_board.setBoardPath(board_path)
 
         # 4. connect relevant view's signals to manager (this)

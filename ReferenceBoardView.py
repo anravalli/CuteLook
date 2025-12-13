@@ -219,11 +219,12 @@ class ReferenceBoardView(QMainWindow):
         )
 
     def openBoard(self) -> None:
+        board_ext = ".refboard"
         file_path, _ = QFileDialog.getOpenFileName(
             self,
             "Select a Reference Board",
             "",
-            "Reference Boards (*.refboard)",
+            f"Reference Boards (*{board_ext})",
         )
         if file_path != "":
             self.new_board.emit(file_path)
@@ -258,26 +259,32 @@ class ReferenceBoardView(QMainWindow):
     def saveBoardAs(self) -> None:
         self.save_board.emit(True)
 
-    def openSaveDialog(self) -> str:
+    def openSaveDialog(self, default_path: str) -> str:
+        # print(f"default_path name:  {default_path}")
+        board_ext = ".refboard"
         file_name, _ = QFileDialog.getSaveFileName(
             self,
             "Save Reference Board",
-            "",
-            "Reference Boards (*.refboard)",
+            default_path,
+            f"Reference Boards (*{board_ext})",
         )
+        if not file_name.endswith(board_ext) and file_name != "":
+            file_name += board_ext
+            # print(f"file name:  {file_name}")
         return file_name
 
     def openImage(self):
-        file_path, _ = QFileDialog.getOpenFileName(
+        file_paths, _ = QFileDialog.getOpenFileNames(
             self,
             "Select an Image",
             "",
             "Immagini (*.png *.jpg *.jpeg *.bmp *.gif)",
         )
         # build image model
-        if file_path != "":
-            path = pathlib.Path(file_path)
-            self.add_image.emit(path)
+        if len(file_paths) != 0:
+            for file_path in file_paths:
+                path = pathlib.Path(file_path)
+                self.add_image.emit(path)
 
     def addImage(self, image_name: str, image_model: ReferenceImageModel):
         floating_image = FloatingImageWidget(image_name, image_model, parent=self)
