@@ -45,12 +45,16 @@ class FloatingImageWidget(QWidget):
     _close_button: FloatingControlButton = None
     _hide_button: FloatingControlButton = None
 
+    _covering_widget: QWidget = None
+    _board = None
+
     image_modified: typing.ClassVar[pyqtSignal] = pyqtSignal()
 
     def __init__(
-        self, image_name: str, image_model: ReferenceImageModel, parent: QWidget = None
+        self, image_name: str, image_model: ReferenceImageModel, board: QWidget = None
     ) -> None:
-        super().__init__(parent)
+        super().__init__(board.getBoardArea())
+        self._board = board
 
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setWindowFlags(Qt.FramelessWindowHint)
@@ -90,11 +94,11 @@ class FloatingImageWidget(QWidget):
         self._hide_button.show()
 
     def hide(self):
-        self.parent().setImageHide()
+        self._board.setImageHide()
         super().hide()
 
     def close(self):
-        self.parent().closeImage(self._image_name)
+        self._board.closeImage(self._image_name)
         super().close()
 
     def _reposition_buttons(self):
@@ -106,10 +110,30 @@ class FloatingImageWidget(QWidget):
 
     def enterEvent(self, event):
         self.show_buttons()
+        i = 0
+        children = self._board.getBoardArea().children()
+        for child in children:
+            print(f"child #{i}: {child}")
+            if child == self:
+                print("current image found at: #", i)
+                break
+            i += 1
+        if i < len(children) - 1:
+            print(f"self index {i} on {len(children) - 1}")
+            self._covering_widget = children[i + 1]
+            print(f"covering_widget is #{i}: {child}")
+        else:
+            self._covering_widget = None
+        self.raise_()
         super().enterEvent(event)
 
     def leaveEvent(self, event):
         self.hide_buttons()
+        if self._covering_widget != None:
+            print(f"restore staking ({self._covering_widget})")
+            # self.stackUnder(self._covering_widget)
+        else:
+            print("keep current stacking")
         super().leaveEvent(event)
 
     def mousePressEvent(self, event):

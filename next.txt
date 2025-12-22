@@ -25,6 +25,17 @@ bachi
 - crash su chiusura immagine
 - nuova board distrugge vecchia dopo chiusura di una board
 - menu contestuale posizionato scorrettamente
+- crash su show/hide:
+    Traceback (most recent call last):
+    File "/home/andrea/Projects/CuteLook/ReferenceBoardView.py", line 325, in showHideImages
+        image.hide()
+        ~~~~~~~~~~^^
+    File "/home/andrea/Projects/CuteLook/ReferenceImageView.py", line 95, in hide
+        self.parent().setImageHide()
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    AttributeError: 'QWidget' object has no attribute 'setImageHide'
+    Aborted (core dumped)
+
 
 
 ---------------------------

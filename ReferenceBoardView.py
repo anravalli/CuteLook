@@ -292,7 +292,7 @@ class ReferenceBoardView(QMainWindow):
     def addImage(
         self, image_name: str, image_model: ReferenceImageModel
     ) -> FloatingImageWidget:
-        floating_image = FloatingImageWidget(image_name, image_model, parent=self)
+        floating_image = FloatingImageWidget(image_name, image_model, board=self)
 
         self._opened_images[image_name] = floating_image
 
@@ -311,7 +311,7 @@ class ReferenceBoardView(QMainWindow):
         )
         dialog = QMessageBox.warning(self, title, message)
 
-    def showHideImages(self):
+    def showHideImages(self) -> None:
         action = self._board_actions["show_hide_image"]
         if self._image_hidden:
             for image in self._opened_images.values():
@@ -324,8 +324,17 @@ class ReferenceBoardView(QMainWindow):
             self._image_hidden = True
             action.action.setIcon(action.icon2)
 
-    def setImageHide(self):
+    def setImageHide(self) -> None:
         self._image_hidden = True
+
+    def getBoardArea(self) -> QWidget:
+        return self._board_area
+
+    def raiseImage(self, img: str) -> None:
+        pass
+
+    def lowerImage(self, img: str) -> None:
+        pass
 
 
 if __name__ == "__main__":
