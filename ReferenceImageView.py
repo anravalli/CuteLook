@@ -1,4 +1,5 @@
 import sys
+import typing
 from PyQt5.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -10,7 +11,7 @@ from PyQt5.QtWidgets import (
     QFileDialog,
 )
 from PyQt5.QtGui import QPixmap, QPainter
-from PyQt5.QtCore import Qt, QPoint, QSize
+from PyQt5.QtCore import Qt, QPoint, QSize, pyqtSignal
 
 from ReferenceBoardModels import *
 
@@ -44,6 +45,8 @@ class FloatingImageWidget(QWidget):
     _close_button: FloatingControlButton = None
     _hide_button: FloatingControlButton = None
 
+    image_modified: typing.ClassVar[pyqtSignal] = pyqtSignal()
+
     def __init__(
         self, image_name: str, image_model: ReferenceImageModel, parent: QWidget = None
     ) -> None:
@@ -61,6 +64,9 @@ class FloatingImageWidget(QWidget):
 
         self._image_model = image_model
         self._image_name = image_name
+
+        pos = self._image_model.view_position
+        self.move(pos["x"], pos["y"])
 
         self.addControlButtons()
 
@@ -113,7 +119,10 @@ class FloatingImageWidget(QWidget):
 
     def mouseMoveEvent(self, event):
         if event.buttons() == Qt.LeftButton:
-            self.move(event.globalPos() - self._drag_position)
+            pos = event.globalPos() - self._drag_position
+            self.move(pos)
+            self._image_model.view_position = {"x": pos.x(), "y": pos.y()}
+            self.image_modified.emit()
             event.accept()
 
     def mouseReleaseEvent(self, event):

@@ -10,9 +10,9 @@ class ReferenceImageModel(BaseModel):
     path: str = ""
     z_order: int = -1
     zoom: float = 1
-    image_center: dict[str, float] = {"x": 256, "y": 256}
-    view_size: dict[str, float] = {"w": 512, "h": 512}
-    view_position: dict[str, float] = {"w": 0, "h": 0}
+    image_center: dict[str, int] = {"x": 256, "y": 256}
+    view_size: dict[str, int] = {"w": 512, "h": 512}
+    view_position: dict[str, int] = {"x": 50, "y": 50}
     view_hidden: bool = False
 
 
@@ -27,9 +27,9 @@ Unit Tests
 """
 test_data = {
     "json_refimage_1": '{"path": "./pippo.png", "zoom": "2"}',
-    "json_refimage_2": '{"path": "./pluto.png", "zoom": "1", "image_center": {"x": 256.0, "y": 256.0}, "view_size": {"w": 512.0, "h": 512.0} }',
+    "json_refimage_2": '{"path": "./pluto.png", "zoom": "1", "image_center": {"x": 256, "y": 256}, "view_size": {"w": 512, "h": 512} }',
     "json_refimage_bad": '{"id": "123", "nome": "Alice"}',
-    "json_refimage_full": '{"path":"./pippo.png","z_order":-1,"zoom":2.0,"image_center":{"x":256.0,"y":256.0},"view_size":{"w":512.0,"h":512.0},"view_position":{"w":0.0,"h":0.0},"view_hidden":false}',
+    "json_refimage_full": '{"path":"./pippo.png","z_order":-1,"zoom":2.0,"image_center":{"x":256,"y":256},"view_size":{"w":512,"h":512},"view_position":{"x":0,"y":0},"view_hidden":false}',
 }
 
 

@@ -18,7 +18,7 @@ from PyQt5.QtWidgets import (
     QLineEdit,
 )
 from PyQt5.QtGui import QPixmap, QCloseEvent, QIcon
-from PyQt5.QtCore import Qt, QPoint, pyqtSignal
+from PyQt5.QtCore import Qt, QPoint, pyqtSignal, QEvent
 
 from ReferenceImageView import *
 from CustomWidget import FloatingLineEdit
@@ -52,13 +52,14 @@ class ReferenceBoardView(QMainWindow):
     close_board: typing.ClassVar[pyqtSignal] = pyqtSignal(int)
     new_board: typing.ClassVar[pyqtSignal] = pyqtSignal(str)
     rename_board: typing.ClassVar[pyqtSignal] = pyqtSignal(str)
+    # board_view_changed: typing.ClassVar[pyqtSignal] = pyqtSignal(str)
 
     def __init__(self, board_id: int):
         super().__init__()
 
         self._board_id = board_id
 
-        self.setGeometry(100, 100, 800, 600)
+        # self.setGeometry(100, 100, 800, 600)
 
         self._board_area = QWidget()
         self._board_area.setStyleSheet("background-color: #232323;")
@@ -147,6 +148,7 @@ class ReferenceBoardView(QMainWindow):
         self.createBoardActions()
 
     def createBoardActions(self) -> None:
+        print("createBoardActions")
         for board_action in self._board_actions.values():
             if not board_action == None:
                 print(f'action "{board_action.text}"')
@@ -154,6 +156,7 @@ class ReferenceBoardView(QMainWindow):
                     board_action.icon, board_action.text, self
                 )
                 board_action.action.setStatusTip(board_action.tooltip)
+                print(f'action instance: {board_action.action}"')
 
     def initBoardActions(self) -> None:
         # TODO read actions configuration from some configuration resource
@@ -286,12 +289,15 @@ class ReferenceBoardView(QMainWindow):
                 path = pathlib.Path(file_path)
                 self.add_image.emit(path)
 
-    def addImage(self, image_name: str, image_model: ReferenceImageModel):
+    def addImage(
+        self, image_name: str, image_model: ReferenceImageModel
+    ) -> FloatingImageWidget:
         floating_image = FloatingImageWidget(image_name, image_model, parent=self)
 
         self._opened_images[image_name] = floating_image
 
         floating_image.show()
+        return floating_image
 
     def closeImage(self, image_name: str):
         img = self._opened_images.pop(image_name)

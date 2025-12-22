@@ -5,6 +5,7 @@ from UnitTesting import *
 
 from ReferenceBoardModels import *
 from ReferenceBoardView import *
+from CuteLookConfig import BoardViewState
 
 
 # Reference Board controller
@@ -15,15 +16,22 @@ class ReferenceBoard:
     _board_path: pathlib.Path = pathlib.Path("./unknown.refboard")
     _modified: bool = False
     _is_new: bool = False
+    _disable_event_filter: bool = True
 
     def __init__(
-        self, board_id: int, model: ReferenceBoardModel, view: ReferenceBoardView
+        self,
+        board_id: int,
+        model: ReferenceBoardModel,
+        view: ReferenceBoardView,
+        view_state: BoardViewState = None,
     ) -> None:
+        # super().__init__()
         self._board_id = board_id
         self._reference_board = model
         self._board_window = view
         self._board_window.setWindowTitle(model.board_name)
-        # self._board_window.installEventFilter()
+        if not view_state == None:
+            self.restoreViewState(view_state)
 
         self._board_window.add_image.connect(self.addNewImage)
         self._board_window.close_image.connect(self.deleteImage)
@@ -70,6 +78,7 @@ class ReferenceBoard:
             else:
                 self._board_path = save_to
                 self._modified = True
+                self._is_new = False
 
         # throw if error/fails
         if self._modified:
@@ -81,28 +90,18 @@ class ReferenceBoard:
             self.updateModifiedStatus(False)
 
     # need unit test
-    # def saveAs(self, new_path: pathlib.Path) -> None:
-    #     # throw if error/fails
-    #     self._board_path = new_path
-    #     self.updateModifiedStatus(False)
-    #     self.save()
-
-    # need unit test
-    def close(self) -> bool:
-        print("ReferenceBoard - closeBoard")
+    def canBeClosed(self) -> bool:
+        print(f"Check if board {self._board_id} can be closed")
+        close_ok = True
         if self._modified:
-            reply = self._board_window.confirmClose()
-            print(f"reply: {reply}")
-            self._modified = not reply
-
-        print(f"_modified: {self._modified}")
-        close_ok = not self._modified
-        if close_ok:
-            print("call close")
-            # self._board_window.close()  # may be a loop here
-            self._board_window.deleteLater()
-
+            print("board is modified")
+            close_ok = self._board_window.confirmClose()
+            print(f"close_ok: {close_ok}")
         return close_ok
+
+    def close(self):
+        print(f"Closing board {self._board_id}")
+        self._board_window.deleteLater()
 
     def loadRefImages(self) -> None:
         for image_name, image_model in self._reference_board.reference_images.items():
@@ -110,7 +109,9 @@ class ReferenceBoard:
             path = pathlib.Path(image_model.path)
             if path.exists() and path.is_file():
                 # create view
-                self._board_window.addImage(image_name, image_model)
+                new_image = self._board_window.addImage(image_name, image_model)
+                # connect to view signals
+                new_image.image_modified.connect(self.imageChanged)
             else:
                 # show warning
                 self._board_window.showMissingImageWarning(image_name, image_model.path)
@@ -135,12 +136,18 @@ class ReferenceBoard:
         image_model.path = image_path.absolute().as_posix()
 
         # create the view
-        self._board_window.addImage(image_name, image_model)
+        new_image = self._board_window.addImage(image_name, image_model)
+        new_image.image_modified.connect(self.imageChanged)
 
         # add the image to the board and set it to modified
         self._reference_board.reference_images[image_name] = image_model
         self.updateModifiedStatus(True)
         print(f'added image "{image_name}"')
+
+    # need unit test
+    def imageChanged(self) -> None:
+        print("imageChanged")
+        self.updateModifiedStatus(True)
 
     # need unit test
     def deleteImage(self, name: str) -> None:
@@ -181,6 +188,39 @@ class ReferenceBoard:
 
     def getModel(self) -> ReferenceBoardModel:
         return self._reference_board
+
+    def getViewState(self) -> BoardViewState:
+        print(f'Getting view state for board "{self._board_id}"')
+        view_state = BoardViewState()
+
+        size = self._board_window.size()
+        view_state.size["w"] = size.width()
+        view_state.size["h"] = size.height()
+        print(f"...size: {size.width()}x{size.height()}")
+
+        if self._board_window.isMaximized():
+            print(f"...is maximized")
+            view_state.maximized = True
+        else:
+            view_state.maximized = False
+
+        pos = self._board_window.pos()
+        print(f"...position: {pos.x()}x{pos.y()}")
+        view_state.position["x"] = pos.x()
+        view_state.position["y"] = pos.y()
+
+        return view_state
+
+    def restoreViewState(self, view_state):
+        if view_state.maximized:
+            self._board_window.setWindowState(Qt.WindowState.WindowMaximized)
+        else:
+            self._board_window.setGeometry(
+                view_state.position["x"],
+                view_state.position["y"],
+                view_state.size["w"],
+                view_state.size["h"],
+            )
 
 
 import os
