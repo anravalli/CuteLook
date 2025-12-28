@@ -16,6 +16,8 @@ from PyQt5.QtWidgets import (
     QMenu,
     QDialog,
     QLineEdit,
+    QGraphicsView,
+    QGraphicsScene
 )
 from PyQt5.QtGui import QPixmap, QCloseEvent, QIcon
 from PyQt5.QtCore import Qt, QPoint, pyqtSignal, QEvent
@@ -34,19 +36,18 @@ class ReferenceBoardAction:
     text: str = ""
     tooltip: str = ""
 
-
 class ReferenceBoardView(QMainWindow):
-    _opened_images: dict[str, ReferenceImageModel] = {}
+    _opened_images: dict[str, FloatingImageWidget] = {}
     _image_hidden: bool = False
     _use_os_theme: bool = False
     _board_actions: dict[str, ReferenceBoardAction] = {}
 
     board_id: int = 0
-    _board_area: QWidget = None
+    _board_area: QGraphicsView = None
+    _board_scene: QGraphicsScene = None
     _context_menu_pos: QPoint = None
 
     add_image: typing.ClassVar[pyqtSignal] = pyqtSignal(pathlib.Path)
-    close_image: typing.ClassVar[pyqtSignal] = pyqtSignal(str)
 
     save_board: typing.ClassVar[pyqtSignal] = pyqtSignal(bool)
     close_board: typing.ClassVar[pyqtSignal] = pyqtSignal(int)
@@ -61,7 +62,8 @@ class ReferenceBoardView(QMainWindow):
 
         # self.setGeometry(100, 100, 800, 600)
 
-        self._board_area = QWidget()
+        self._board_scene = QGraphicsScene()
+        self._board_area = QGraphicsView(self._board_scene)
         self._board_area.setStyleSheet("background-color: #232323;")
 
         self.setCentralWidget(self._board_area)
@@ -292,18 +294,18 @@ class ReferenceBoardView(QMainWindow):
     def addImage(
         self, image_name: str, image_model: ReferenceImageModel
     ) -> FloatingImageWidget:
-        floating_image = FloatingImageWidget(image_name, image_model, parent=self)
-
-        self._opened_images[image_name] = floating_image
-
+        floating_image = FloatingImageWidget(image_name, image_model, parent=None)
+        floating_image_proxy = self._board_scene.addWidget(floating_image)
+        self._opened_images[image_name] = floating_image_proxy
         floating_image.show()
         return floating_image
 
     def closeImage(self, image_name: str):
         img = self._opened_images.pop(image_name)
+        # Item is removed from scene by widget destructor
+        #print(f'item in scene: {len(self._board_scene.items())}')
         img.deleteLater()
-        self.close_image.emit(image_name)
-
+        
     def showMissingImageWarning(self, name: str, path: str) -> None:
         title = "Image file not found"
         message = (
@@ -326,6 +328,8 @@ class ReferenceBoardView(QMainWindow):
 
     def setImageHide(self):
         self._image_hidden = True
+        action = self._board_actions["show_hide_image"]
+        action.action.setIcon(action.icon2)
 
 
 if __name__ == "__main__":

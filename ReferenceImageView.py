@@ -9,11 +9,13 @@ from PyQt5.QtWidgets import (
     QWidget,
     QPushButton,
     QFileDialog,
+    QSizePolicy
 )
 from PyQt5.QtGui import QPixmap, QPainter
 from PyQt5.QtCore import Qt, QPoint, QSize, pyqtSignal
 
 from ReferenceBoardModels import *
+from enum import Enum, auto
 
 
 class FloatingControlButton(QPushButton):
@@ -34,10 +36,18 @@ class FloatingControlButton(QPushButton):
             }
         """)
 
+class FloatingImageState(Enum):
+    NORMAL = 0
+    HIDDEN = 1
+    CLOSED = 2
+    ZOOMED = 3
+    PANNED = 4
+    MOVED = 5
 
 class FloatingImageWidget(QWidget):
     _pixmap: QPixmap = None
     _pixmap_size: QSize = None
+    _drag_position: QPoint = QPoint()
 
     _image_model: ReferenceImageModel = None
     _image_name: str = ""
@@ -45,7 +55,7 @@ class FloatingImageWidget(QWidget):
     _close_button: FloatingControlButton = None
     _hide_button: FloatingControlButton = None
 
-    image_modified: typing.ClassVar[pyqtSignal] = pyqtSignal()
+    image_state_changed: typing.ClassVar[pyqtSignal] = pyqtSignal(str, FloatingImageState)
 
     def __init__(
         self, image_name: str, image_model: ReferenceImageModel, parent: QWidget = None
@@ -55,15 +65,17 @@ class FloatingImageWidget(QWidget):
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setWindowFlags(Qt.FramelessWindowHint)
 
-        self._drag_position = QPoint()
+        self._image_model = image_model
+        self._image_name = image_name
 
         self._pixmap = QPixmap(image_model.path)
         self._pixmap_size = self._pixmap.size()
 
-        self.setFixedSize(self._pixmap_size)
+        self.setFixedSize(self._pixmap_size * self._image_model.scale)
+        self.setMinimumSize(0, 0)
+        self.setMaximumSize(16777215, 16777215) # QWIDGETSIZE_MAX
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
-        self._image_model = image_model
-        self._image_name = image_name
 
         pos = self._image_model.view_position
         self.move(pos["x"], pos["y"])
@@ -74,7 +86,7 @@ class FloatingImageWidget(QWidget):
         self._close_button = FloatingControlButton("X", self)
         self._hide_button = FloatingControlButton("-", self)
 
-        self._close_button.clicked.connect(self.close)
+        self._close_button.clicked.connect(self.doClose)
         self._hide_button.clicked.connect(self.hide)
 
         self._reposition_buttons()
@@ -90,12 +102,11 @@ class FloatingImageWidget(QWidget):
         self._hide_button.show()
 
     def hide(self):
-        self.parent().setImageHide()
+        self.image_state_changed.emit(self._image_name, FloatingImageState.HIDDEN)
         super().hide()
 
-    def close(self):
-        self.parent().closeImage(self._image_name)
-        super().close()
+    def doClose(self):
+        self.image_state_changed.emit(self._image_name, FloatingImageState.CLOSED)
 
     def _reposition_buttons(self):
         xc = self.width() - self._close_button.width() - 5
@@ -122,7 +133,7 @@ class FloatingImageWidget(QWidget):
             pos = event.globalPos() - self._drag_position
             self.move(pos)
             self._image_model.view_position = {"x": pos.x(), "y": pos.y()}
-            self.image_modified.emit()
+            self.image_state_changed.emit(self._image_name, FloatingImageState.MOVED)
             event.accept()
 
     def mouseReleaseEvent(self, event):
@@ -130,16 +141,23 @@ class FloatingImageWidget(QWidget):
         event.accept()
 
     def wheelEvent(self, event):
-        zoom_factor = 1.1 if event.angleDelta().y() > 0 else 1 / 1.1
-        new_size = self._pixmap_size * zoom_factor
+        if event.angleDelta().y() > 0:
+            self._image_model.scale += 0.1
+        else:
+            self._image_model.scale += -0.1
+        if self._image_model.scale < 0.1:
+            self._image_model.scale = 0.1
+        
+        new_size = self._pixmap_size * self._image_model.scale
         self.setFixedSize(new_size)
         self._reposition_buttons()
-        self._pixmap_size = new_size
+        
+        self.image_state_changed.emit(self._image_name, FloatingImageState.ZOOMED)
         event.accept()
 
     def paintEvent(self, event):
         painter = QPainter(self)
-        scaled_pixmap = self._pixmap.scaled(
-            self._pixmap_size, Qt.KeepAspectRatio, Qt.SmoothTransformation
-        )
+        new_size = self._pixmap_size * self._image_model.scale
+        scaled_pixmap = self._pixmap.scaled(new_size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         painter.drawPixmap(0, 0, scaled_pixmap)
+        event.accept()

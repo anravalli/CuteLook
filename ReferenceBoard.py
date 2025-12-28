@@ -34,7 +34,7 @@ class ReferenceBoard:
             self.restoreViewState(view_state)
 
         self._board_window.add_image.connect(self.addNewImage)
-        self._board_window.close_image.connect(self.deleteImage)
+        #self._board_window.close_image.connect(self.deleteImage)
         self._board_window.save_board.connect(self.save)
         self._board_window.rename_board.connect(self.renameBoard)
 
@@ -111,7 +111,7 @@ class ReferenceBoard:
                 # create view
                 new_image = self._board_window.addImage(image_name, image_model)
                 # connect to view signals
-                new_image.image_modified.connect(self.imageChanged)
+                new_image.image_state_changed.connect(self.imageChanged)
             else:
                 # show warning
                 self._board_window.showMissingImageWarning(image_name, image_model.path)
@@ -137,7 +137,7 @@ class ReferenceBoard:
 
         # create the view
         new_image = self._board_window.addImage(image_name, image_model)
-        new_image.image_modified.connect(self.imageChanged)
+        new_image.image_state_changed.connect(self.imageChanged)
 
         # add the image to the board and set it to modified
         self._reference_board.reference_images[image_name] = image_model
@@ -145,9 +145,16 @@ class ReferenceBoard:
         print(f'added image "{image_name}"')
 
     # need unit test
-    def imageChanged(self) -> None:
-        print("imageChanged")
-        self.updateModifiedStatus(True)
+    def imageChanged(self, img_name: str, state: FloatingImageState) -> None:
+        #print("imageChanged")
+        if state == FloatingImageState.HIDDEN:
+            self._board_window.setImageHide()
+        elif state == FloatingImageState.CLOSED:
+            self._board_window.closeImage(img_name)            
+            self.deleteImage(img_name)
+        else:
+            self.updateModifiedStatus(True)
+        #print(f'ref board - item in scene: {len(self._board_window._board_scene.items())}')
 
     # need unit test
     def deleteImage(self, name: str) -> None:
@@ -228,7 +235,7 @@ import os
 test_data = {
     "board_file_name": "./pippo.refboard",
     "json_refboard": '{"board_name": "test",\n\
-        "reference_images": \n{ "pippo": \n{"path": "./pippo.png", "zoom": "2"}, "pluto": \n{"path": "./pluto.png", "zoom": "1", "image_center": {"x": 256.0, "y": 256.0}, "view_size": {"w": 512.0, "h": 512.0}}\n }\n }\n',
+        "reference_images": \n{ "pippo": \n{"path": "./pippo.png", "scale": "2"}, "pluto": \n{"path": "./pluto.png", "scale": "1", "image_center": {"x": 256.0, "y": 256.0}, "view_size": {"w": 512.0, "h": 512.0}}\n }\n }\n',
 }
 
 
