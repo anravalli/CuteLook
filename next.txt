@@ -1,5 +1,5 @@
-- aggiornare il modello dell'immagine quando viene spostata o zoommata
-- portare in primo piano con alt+left_click
+- DONE - aggiornare il modello dell'immagine quando viene spostata o zoommata
+- DONE - portare in primo piano con ctrl+left_click
 - DONE - riposizionare le immagini al caricamento da file
 - centratura su zoom immagini
 - pan immagini (+ save&restore)

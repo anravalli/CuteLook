@@ -205,6 +205,7 @@ class ReferenceBoardView(QMainWindow):
         print(f'add_image icon "{self._board_actions["add_image"].icon}"')
         self._board_actions["show_hide_image"].icon = QIcon("icons/eye.svg")
         self._board_actions["show_hide_image"].icon2 = QIcon("icons/eye-crossed.svg")
+        self._board_actions["show_hide_image"].icon3 = QIcon("icons/low-vision.svg")
 
     def addBoardActionsIconsFromTheme(self) -> None:
         self._board_actions["new_board"].icon = QIcon.fromTheme(
@@ -278,7 +279,7 @@ class ReferenceBoardView(QMainWindow):
             # print(f"file name:  {file_name}")
         return file_name
 
-    def openImage(self):
+    def openImage(self) -> None:
         file_paths, _ = QFileDialog.getOpenFileNames(
             self,
             "Select an Image",
@@ -296,11 +297,12 @@ class ReferenceBoardView(QMainWindow):
     ) -> FloatingImageWidget:
         floating_image = FloatingImageWidget(image_name, image_model, parent=None)
         floating_image_proxy = self._board_scene.addWidget(floating_image)
+        floating_image_proxy.setZValue(image_model.z_order)
         self._opened_images[image_name] = floating_image_proxy
         floating_image.show()
         return floating_image
 
-    def closeImage(self, image_name: str):
+    def closeImage(self, image_name: str) -> None:
         img = self._opened_images.pop(image_name)
         # Item is removed from scene by widget destructor
         #print(f'item in scene: {len(self._board_scene.items())}')
@@ -313,7 +315,7 @@ class ReferenceBoardView(QMainWindow):
         )
         dialog = QMessageBox.warning(self, title, message)
 
-    def showHideImages(self):
+    def showHideImages(self) -> None:
         action = self._board_actions["show_hide_image"]
         if self._image_hidden:
             for image in self._opened_images.values():
@@ -326,11 +328,15 @@ class ReferenceBoardView(QMainWindow):
             self._image_hidden = True
             action.action.setIcon(action.icon2)
 
-    def setImageHide(self):
+    def setImageHide(self) -> None:
         self._image_hidden = True
         action = self._board_actions["show_hide_image"]
-        action.action.setIcon(action.icon2)
+        action.action.setIcon(action.icon3)
 
+    def mousePressEvent(self, event):
+        for image in self._opened_images.values():
+            image.widget().deselect()
+        super().mousePressEvent(event)
 
 if __name__ == "__main__":
     test_list = []

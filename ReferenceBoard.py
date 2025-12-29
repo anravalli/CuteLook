@@ -17,6 +17,7 @@ class ReferenceBoard:
     _modified: bool = False
     _is_new: bool = False
     _disable_event_filter: bool = True
+    _next_z: int = 0
 
     def __init__(
         self,
@@ -104,6 +105,7 @@ class ReferenceBoard:
         self._board_window.deleteLater()
 
     def loadRefImages(self) -> None:
+        self._next_z = len(self._reference_board.reference_images)
         for image_name, image_model in self._reference_board.reference_images.items():
             # assert image_name not in self._reference_board.reference_images.keys()
             path = pathlib.Path(image_model.path)
@@ -134,7 +136,7 @@ class ReferenceBoard:
         # create the image model and initialize it
         image_model = ReferenceImageModel()
         image_model.path = image_path.absolute().as_posix()
-
+        image_model.z_order = self._next_z
         # create the view
         new_image = self._board_window.addImage(image_name, image_model)
         new_image.image_state_changed.connect(self.imageChanged)
@@ -142,6 +144,7 @@ class ReferenceBoard:
         # add the image to the board and set it to modified
         self._reference_board.reference_images[image_name] = image_model
         self.updateModifiedStatus(True)
+        self._next_z += 1
         print(f'added image "{image_name}"')
 
     # need unit test
@@ -152,6 +155,8 @@ class ReferenceBoard:
         elif state == FloatingImageState.CLOSED:
             self._board_window.closeImage(img_name)            
             self.deleteImage(img_name)
+        #elif state == FloatingImageState.ZCHANGED:
+            #self._board_window.updateZorder(img_name)
         else:
             self.updateModifiedStatus(True)
         #print(f'ref board - item in scene: {len(self._board_window._board_scene.items())}')

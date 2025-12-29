@@ -8,7 +8,7 @@ from UnitTesting import *
 # Reference Image model
 class ReferenceImageModel(BaseModel):
     path: str = ""
-    z_order: int = -1
+    z_order: int = 0
     scale: float = 1.0
     image_center: dict[str, int] = {"x": 256, "y": 256}
     view_size: dict[str, int] = {"w": 512, "h": 512}
