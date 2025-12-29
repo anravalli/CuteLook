@@ -128,7 +128,7 @@ class CuteLook:
         if not is_recent:
             board_list_entry = RefBoard()
             board_list_entry.path = board._board_path
-            board_list_entry.view_state = board.getViewState()
+            board_list_entry.view_state = board.getViewState() #FIXME review needed
             self._app_config.recent_boards.append(board_list_entry)
 
 

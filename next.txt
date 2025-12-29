@@ -1,6 +1,7 @@
-- aggiornare il modello dell'immagine quando viene spostata o zoommata
-- portare in primo piano con alt+left_click
+- DONE - aggiornare il modello dell'immagine quando viene spostata o zoommata
+- DONE - selezione e portare in primo piano con ctrl+left_click
 - DONE - riposizionare le immagini al caricamento da file
+- DONE - Z-order (+ save&restore)
 - centratura su zoom immagini
 - pan immagini (+ save&restore)
 - crop and resize delle immagini (+ save&restore)
@@ -44,7 +45,7 @@ Board mode:
     - resize / scale
     - move: left_click & drag
     - temporary_rise: hoover
-    - select: left_click
+    - select: ctrl+left_click
     - multi-select: shift + left click
 
 

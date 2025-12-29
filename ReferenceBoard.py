@@ -17,26 +17,29 @@ class ReferenceBoard:
     _modified: bool = False
     _is_new: bool = False
     _disable_event_filter: bool = True
+    _next_z: int = 0
+    _z_stack: dict[int,str] = {}
+    _selected_images: list[str] = []
 
     def __init__(
         self,
         board_id: int,
         model: ReferenceBoardModel,
         view: ReferenceBoardView,
-        view_state: BoardViewState = None,
+        view_state: BoardViewState = BoardViewState(),
     ) -> None:
         # super().__init__()
         self._board_id = board_id
         self._reference_board = model
         self._board_window = view
         self._board_window.setWindowTitle(model.board_name)
-        if not view_state == None:
-            self.restoreViewState(view_state)
+       
+        self.restoreViewState(view_state)
 
         self._board_window.add_image.connect(self.addNewImage)
-        #self._board_window.close_image.connect(self.deleteImage)
         self._board_window.save_board.connect(self.save)
         self._board_window.rename_board.connect(self.renameBoard)
+        self._board_window.deselect_images.connect(self.deselectAllImages)
 
         self.loadRefImages()
 
@@ -115,6 +118,10 @@ class ReferenceBoard:
             else:
                 # show warning
                 self._board_window.showMissingImageWarning(image_name, image_model.path)
+            
+            self._z_stack[image_model.z_order] = image_name
+            self._next_z = len(self._z_stack)
+            print(f'next Z: {self._next_z}')
 
     # need unit test
     def addNewImage(self, image_path: pathlib.Path) -> None:
@@ -134,28 +141,85 @@ class ReferenceBoard:
         # create the image model and initialize it
         image_model = ReferenceImageModel()
         image_model.path = image_path.absolute().as_posix()
-
+        image_model.z_order = self._next_z
+        self._z_stack[self._next_z] = image_name
         # create the view
         new_image = self._board_window.addImage(image_name, image_model)
         new_image.image_state_changed.connect(self.imageChanged)
+        new_image.selected.connect(self.checkSelectedImage)
 
         # add the image to the board and set it to modified
         self._reference_board.reference_images[image_name] = image_model
         self.updateModifiedStatus(True)
+        self._next_z += 1
         print(f'added image "{image_name}"')
 
     # need unit test
     def imageChanged(self, img_name: str, state: FloatingImageState) -> None:
         #print("imageChanged")
-        if state == FloatingImageState.HIDDEN:
-            self._board_window.setImageHide()
-        elif state == FloatingImageState.CLOSED:
-            self._board_window.closeImage(img_name)            
-            self.deleteImage(img_name)
-        else:
-            self.updateModifiedStatus(True)
+        match state:
+            case FloatingImageState.HIDDEN:
+                self._board_window.setImageHide()
+            case FloatingImageState.CLOSED:
+                self._board_window.closeImage(img_name)            
+                self.deleteImage(img_name)
+            case FloatingImageState.SELECTED:
+                print(f"image selected: {img_name}")
+                self.checkSelectedImage(img_name)
+            case FloatingImageState.UNSELECTED:
+                print(f"image deselect: {img_name}")
+                self.checkSelectedImage(img_name, False)
+            case FloatingImageState.ZRAISED:
+                print(f"image z raised: {img_name}")
+                self.raiseImageZ(img_name)
+            case FloatingImageState.ZLOWERED:
+                print(f"image z lowered: {img_name}")
+                self.lowerImageZ(img_name)
+            case _:
+                self.updateModifiedStatus(True)
         #print(f'ref board - item in scene: {len(self._board_window._board_scene.items())}')
+        
+    def checkSelectedImage(self, img_name: str, selected: bool = True) -> None:
+        print(f"selected image: {img_name}")
+        if not img_name in self._selected_images:
+            print(f"old selected image: {self._selected_images}")
+            self._board_window.deselectImages(self._selected_images)
+            self._selected_images.clear()
+            if selected:
+                self._selected_images.append(img_name)
+            
+    def deselectAllImages(self) -> None:
+        self._board_window.deselectImages(self._selected_images)
+        self._selected_images.clear()
 
+    def raiseImageZ(self, img_name: str) -> None:
+        curr_z = self._reference_board.reference_images[img_name].z_order
+        new_z = curr_z+1
+        print(f'{img_name} zeta order is: {curr_z}')
+        if new_z < len(self._z_stack):
+            self._reference_board.reference_images[img_name].z_order = new_z
+            upper_img = self._z_stack[new_z]
+            self._reference_board.reference_images[upper_img].z_order = curr_z
+            self._z_stack[new_z] = img_name
+            self._z_stack[curr_z] = upper_img
+            print(f'...new zeta order is: {new_z}')
+            self._board_window.setImageZvalue(img_name, new_z)
+            self._board_window.setImageZvalue(upper_img, curr_z)
+            
+    def lowerImageZ(self, img_name: str) -> None:
+        curr_z = self._reference_board.reference_images[img_name].z_order
+        new_z = curr_z-1
+        print(f'{img_name} zeta order is: {curr_z}')
+        if new_z >= 0:
+            self._reference_board.reference_images[img_name].z_order = new_z
+            lower_img = self._z_stack[new_z]
+            self._reference_board.reference_images[lower_img].z_order = curr_z
+            self._z_stack[new_z] = img_name
+            self._z_stack[curr_z] = lower_img
+            print(f'...new zeta order is: {new_z}')
+            self._board_window.setImageZvalue(img_name, new_z)
+            self._board_window.setImageZvalue(lower_img, curr_z)
+            
     # need unit test
     def deleteImage(self, name: str) -> None:
         # exception shall be handled by caller
@@ -219,6 +283,7 @@ class ReferenceBoard:
         return view_state
 
     def restoreViewState(self, view_state):
+        print(f'restoring view state: {view_state}')
         if view_state.maximized:
             self._board_window.setWindowState(Qt.WindowState.WindowMaximized)
         else:
