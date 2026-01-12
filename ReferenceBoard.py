@@ -1,10 +1,12 @@
-import json
 import pathlib
+from pydantic import ValidationError
+from PyQt5.QtCore import Qt
 
-from UnitTesting import *
+from UnitTesting import RunTest, TestFunction, TestFailedException
 
-from ReferenceBoardModels import *
-from ReferenceBoardView import *
+from ReferenceBoardModels import ReferenceBoardModel, ReferenceImageModel
+from ReferenceBoardView import ReferenceBoardView
+from ReferenceImageView import FloatingImageState
 from CuteLookConfig import BoardViewState
 
 
@@ -18,7 +20,7 @@ class ReferenceBoard:
     _is_new: bool = False
     _disable_event_filter: bool = True
     _next_z: int = 0
-    _z_stack: dict[int,str] = {}
+    _z_stack: dict[int, str] = {}
     _selected_images: list[str] = []
 
     def __init__(
@@ -33,7 +35,7 @@ class ReferenceBoard:
         self._reference_board = model
         self._board_window = view
         self._board_window.setWindowTitle(model.board_name)
-       
+
         self.restoreViewState(view_state)
 
         self._board_window.add_image.connect(self.addNewImage)
@@ -118,10 +120,10 @@ class ReferenceBoard:
             else:
                 # show warning
                 self._board_window.showMissingImageWarning(image_name, image_model.path)
-            
+
             self._z_stack[image_model.z_order] = image_name
             self._next_z = len(self._z_stack)
-            print(f'next Z: {self._next_z}')
+            print(f"next Z: {self._next_z}")
 
     # need unit test
     def addNewImage(self, image_path: pathlib.Path) -> None:
@@ -156,12 +158,12 @@ class ReferenceBoard:
 
     # need unit test
     def imageChanged(self, img_name: str, state: FloatingImageState) -> None:
-        #print("imageChanged")
+        # print("imageChanged")
         match state:
             case FloatingImageState.HIDDEN:
                 self._board_window.setImageHide()
             case FloatingImageState.CLOSED:
-                self._board_window.closeImage(img_name)            
+                self._board_window.closeImage(img_name)
                 self.deleteImage(img_name)
             case FloatingImageState.SELECTED:
                 print(f"image selected: {img_name}")
@@ -177,49 +179,49 @@ class ReferenceBoard:
                 self.lowerImageZ(img_name)
             case _:
                 self.updateModifiedStatus(True)
-        #print(f'ref board - item in scene: {len(self._board_window._board_scene.items())}')
-        
+        # print(f'ref board - item in scene: {len(self._board_window._board_scene.items())}')
+
     def checkSelectedImage(self, img_name: str, selected: bool = True) -> None:
         print(f"selected image: {img_name}")
-        if not img_name in self._selected_images:
+        if img_name not in self._selected_images:
             print(f"old selected image: {self._selected_images}")
             self._board_window.deselectImages(self._selected_images)
             self._selected_images.clear()
             if selected:
                 self._selected_images.append(img_name)
-            
+
     def deselectAllImages(self) -> None:
         self._board_window.deselectImages(self._selected_images)
         self._selected_images.clear()
 
     def raiseImageZ(self, img_name: str) -> None:
         curr_z = self._reference_board.reference_images[img_name].z_order
-        new_z = curr_z+1
-        print(f'{img_name} zeta order is: {curr_z}')
+        new_z = curr_z + 1
+        print(f"{img_name} zeta order is: {curr_z}")
         if new_z < len(self._z_stack):
             self._reference_board.reference_images[img_name].z_order = new_z
             upper_img = self._z_stack[new_z]
             self._reference_board.reference_images[upper_img].z_order = curr_z
             self._z_stack[new_z] = img_name
             self._z_stack[curr_z] = upper_img
-            print(f'...new zeta order is: {new_z}')
+            print(f"...new zeta order is: {new_z}")
             self._board_window.setImageZvalue(img_name, new_z)
             self._board_window.setImageZvalue(upper_img, curr_z)
-            
+
     def lowerImageZ(self, img_name: str) -> None:
         curr_z = self._reference_board.reference_images[img_name].z_order
-        new_z = curr_z-1
-        print(f'{img_name} zeta order is: {curr_z}')
+        new_z = curr_z - 1
+        print(f"{img_name} zeta order is: {curr_z}")
         if new_z >= 0:
             self._reference_board.reference_images[img_name].z_order = new_z
             lower_img = self._z_stack[new_z]
             self._reference_board.reference_images[lower_img].z_order = curr_z
             self._z_stack[new_z] = img_name
             self._z_stack[curr_z] = lower_img
-            print(f'...new zeta order is: {new_z}')
+            print(f"...new zeta order is: {new_z}")
             self._board_window.setImageZvalue(img_name, new_z)
             self._board_window.setImageZvalue(lower_img, curr_z)
-            
+
     # need unit test
     def deleteImage(self, name: str) -> None:
         # exception shall be handled by caller
@@ -227,7 +229,7 @@ class ReferenceBoard:
         self.updateModifiedStatus(True)
 
     # need unit test
-    def rename(new_name: str) -> None:
+    def rename(self, new_name: str) -> None:
         self._reference_board.board_name = new_name
         self._board_window.setWindowTitle(new_name)
         self.updateModifiedStatus(True)
@@ -242,7 +244,7 @@ class ReferenceBoard:
 
         # check if the new name is already in use
         assert new_name not in self._reference_board.reference_images.keys(), (
-            f"Name already in use"
+            "Name already in use"
         )
 
         # do rename (exception shall be handled by caller)
@@ -270,7 +272,7 @@ class ReferenceBoard:
         print(f"...size: {size.width()}x{size.height()}")
 
         if self._board_window.isMaximized():
-            print(f"...is maximized")
+            print("...is maximized")
             view_state.maximized = True
         else:
             view_state.maximized = False
@@ -283,7 +285,7 @@ class ReferenceBoard:
         return view_state
 
     def restoreViewState(self, view_state):
-        print(f'restoring view state: {view_state}')
+        print(f"restoring view state: {view_state}")
         if view_state.maximized:
             self._board_window.setWindowState(Qt.WindowState.WindowMaximized)
         else:
@@ -295,7 +297,7 @@ class ReferenceBoard:
             )
 
 
-import os
+from os import remove
 
 test_data = {
     "board_file_name": "./pippo.refboard",
@@ -340,7 +342,7 @@ def refBoard_from_file_ok():
         for name, image in board._reference_board.reference_images.items():
             assert name in ["pippo", "pluto"], f"name {name} not in [pippo, pluto]"
             # print(f'image "{name}": {image}')
-        os.remove(file_name)
+        remove(file_name)
 
     except ValidationError as e:
         print(f"Build form JSON Failed: {e}")

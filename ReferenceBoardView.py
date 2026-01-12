@@ -1,33 +1,24 @@
-import sys
 import typing
+import pathlib
 from PyQt5.QtWidgets import (
-    QApplication,
     QMainWindow,
-    QLabel,
-    QVBoxLayout,
-    QHBoxLayout,
-    QWidget,
-    QPushButton,
     QFileDialog,
     QMessageBox,
     QAction,
     QToolBar,
-    QStyle,
     QMenu,
-    QDialog,
-    QLineEdit,
     QGraphicsView,
-    QGraphicsScene
+    QGraphicsScene,
 )
-from PyQt5.QtGui import QPixmap, QCloseEvent, QIcon
-from PyQt5.QtCore import Qt, QPoint, pyqtSignal, QEvent
+from PyQt5.QtGui import QCloseEvent, QIcon
+from PyQt5.QtCore import Qt, QSize, QPoint, pyqtSignal
 
-from ReferenceImageView import *
+from ReferenceImageView import FloatingImageWidget
 from CustomWidget import FloatingLineEdit
 
 # from ReferenceBoard import *
-from ReferenceBoardModels import *
-from UnitTesting import *
+from ReferenceBoardModels import ReferenceImageModel
+from UnitTesting import RunTest
 
 
 class ReferenceBoardAction:
@@ -35,6 +26,7 @@ class ReferenceBoardAction:
     action: QAction = None
     text: str = ""
     tooltip: str = ""
+
 
 class ReferenceBoardView(QMainWindow):
     _opened_images: dict[str, FloatingImageWidget] = {}
@@ -46,6 +38,7 @@ class ReferenceBoardView(QMainWindow):
     _board_area: QGraphicsView = None
     _board_scene: QGraphicsScene = None
     _context_menu_pos: QPoint = None
+    _toolbar: QToolBar = None
 
     add_image: typing.ClassVar[pyqtSignal] = pyqtSignal(pathlib.Path)
 
@@ -68,7 +61,7 @@ class ReferenceBoardView(QMainWindow):
 
         self.setCentralWidget(self._board_area)
 
-        toolbar = self.createToolbar()
+        self._toolbar = self.createToolbar()
         # connect actions signals do board callbacks
         self._board_actions["new_board"].action.triggered.connect(self.newBoard)
         self._board_actions["open_board"].action.triggered.connect(self.openBoard)
@@ -93,7 +86,7 @@ class ReferenceBoardView(QMainWindow):
         # """)
 
         for board_action in self._board_actions.values():
-            if board_action == None:
+            if board_action is None:
                 context_menu.addSeparator()
                 continue
             context_menu.addAction(board_action.action)
@@ -128,7 +121,7 @@ class ReferenceBoardView(QMainWindow):
         self.configureBoardActions()
         # add actions to toolbar
         for board_action in self._board_actions.values():
-            if board_action == None:
+            if board_action is None:
                 toolbar.addSeparator()
                 continue
             toolbar.addAction(board_action.action)
@@ -152,7 +145,7 @@ class ReferenceBoardView(QMainWindow):
     def createBoardActions(self) -> None:
         print("createBoardActions")
         for board_action in self._board_actions.values():
-            if not board_action == None:
+            if board_action is not None:
                 print(f'action "{board_action.text}"')
                 board_action.action = QAction(
                     board_action.icon, board_action.text, self
@@ -305,15 +298,15 @@ class ReferenceBoardView(QMainWindow):
     def closeImage(self, image_name: str) -> None:
         img = self._opened_images.pop(image_name)
         # Item is removed from scene by widget destructor
-        #print(f'item in scene: {len(self._board_scene.items())}')
+        # print(f'item in scene: {len(self._board_scene.items())}')
         img.deleteLater()
-        
+
     def showMissingImageWarning(self, name: str, path: str) -> None:
         title = "Image file not found"
         message = (
             f'Can\'t open image "{name}".\n Please check if the path is valid:\n{path}'
         )
-        dialog = QMessageBox.warning(self, title, message)
+        QMessageBox.warning(self, title, message)
 
     def showHideImages(self) -> None:
         action = self._board_actions["show_hide_image"]
@@ -336,15 +329,16 @@ class ReferenceBoardView(QMainWindow):
     def mousePressEvent(self, event):
         self.deselect_images.emit()
         super().mousePressEvent(event)
-                
+
     def deselectImages(self, images: list[str] = []) -> None:
         print(f"images to deselect: {images}")
         if len(images):
             for image in images:
                 self._opened_images[image].widget().deselect()
-                
+
     def setImageZvalue(self, img_name: str, z_order: int) -> None:
         self._opened_images[img_name].setZValue(z_order)
+
 
 if __name__ == "__main__":
     test_list = []

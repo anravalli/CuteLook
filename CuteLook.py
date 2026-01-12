@@ -5,11 +5,12 @@ import sys
 from pathlib import Path
 from platformdirs import user_config_dir
 
-from ReferenceImageView import *
-from ReferenceBoardView import *
-from ReferenceBoard import *
-from UnitTesting import *
-from CuteLookConfig import *
+# from ReferenceImageView import *
+from PyQt5.QtWidgets import QApplication
+from ReferenceBoardView import ReferenceBoardView
+from ReferenceBoard import ReferenceBoard
+from ReferenceBoardModels import ReferenceBoardModel
+from CuteLookConfig import CuteLookConfig, RefBoard
 
 
 class CuteLook:
@@ -64,7 +65,7 @@ class CuteLook:
         new_board.setBoardPath(board_path)
 
         # 4. connect relevant view's signals to manager (this)
-        print(f"CuteLook - connect signals")
+        print("CuteLook - connect signals")
         board_view.close_board.connect(self.closeBoard)
         board_view.new_board.connect(self.openBoard)
 
@@ -83,7 +84,7 @@ class CuteLook:
                 self._boards[board_id].close()
                 print(f"removing board {board_id}")
                 del self._boards[board_id]
-                print(f"...removed")
+                print("...removed")
 
             if not len(self._boards):
                 print("Last board closed: exit")
@@ -128,7 +129,7 @@ class CuteLook:
         if not is_recent:
             board_list_entry = RefBoard()
             board_list_entry.path = board._board_path
-            board_list_entry.view_state = board.getViewState() #FIXME review needed
+            board_list_entry.view_state = board.getViewState()  # FIXME review needed
             self._app_config.recent_boards.append(board_list_entry)
 
 

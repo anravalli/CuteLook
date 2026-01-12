@@ -1,8 +1,5 @@
-import json
-import pathlib
-
 from pydantic import BaseModel, ValidationError
-from UnitTesting import *
+from UnitTesting import RunTest, TestFunction, TestFailedException
 
 
 # Reference Image model
@@ -37,7 +34,7 @@ test_data = {
 def refImage_from_json_ok():
     try:
         json_ref = test_data["json_refimage_1"]
-        img = ReferenceImageModel.model_validate_json(json_ref)
+        ReferenceImageModel.model_validate_json(json_ref)
         # print(f"img {img}")
     except ValidationError as e:
         print(f"Test Failed: {e}")
@@ -54,7 +51,7 @@ def refImage_from_json_ok():
 def refImage_from_json2_ok():
     try:
         json_ref = test_data["json_refimage_2"]
-        img = ReferenceImageModel.model_validate_json(json_ref)
+        ReferenceImageModel.model_validate_json(json_ref)
     except ValidationError as e:
         print(f"Test Failed: {e}")
         raise TestFailedException()
@@ -70,7 +67,7 @@ def refImage_from_json2_ok():
 def refImage_from_json_failed():
     try:
         json_ref = json_ref = test_data["json_refimage_bad"]
-        img_2 = ReferenceImageModel.model_validate_json(json_ref)
+        ReferenceImageModel.model_validate_json(json_ref)
         # print(f"img_2 {img_2}")
     except TypeError as e:
         print(f"-- ERROR: {e}")
