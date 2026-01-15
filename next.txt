@@ -26,23 +26,8 @@ bachi
 - crash su chiusura immagine
 - nuova board distrugge vecchia dopo chiusura di una board
 - menu contestuale posizionato scorrettamente
-- crash su deselect dopo chiusura immagine
-    image selected: ill-0-0
-    selected image: ill-0-0
-    old selected image: ['ill-0-1']
-    images to deselect: ['ill-0-1']
-    Traceback (most recent call last):
-    File "/home/andrea/Projects/CuteLook/ReferenceBoard.py", line 168, in imageChanged
-        self.checkSelectedImage(img_name)
-        ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
-    File "/home/andrea/Projects/CuteLook/ReferenceBoard.py", line 186, in checkSelectedImage
-        self._board_window.deselectImages(self._selected_images)
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
-    File "/home/andrea/Projects/CuteLook/ReferenceBoardView.py", line 344, in deselectImages
-        self._opened_images[image].widget().deselect()
-        ~~~~~~~~~~~~~~~~~~~^^^^^^^
-    KeyError: 'ill-0-1'
-    Aborted (core dumped)
+FIXED - crash su deselect dopo chiusura immagine
+
 
 
 

@@ -158,11 +158,11 @@ class ReferenceBoard:
 
     # need unit test
     def imageChanged(self, img_name: str, state: FloatingImageState) -> None:
-        # print("imageChanged")
         match state:
             case FloatingImageState.HIDDEN:
                 self._board_window.setImageHide()
             case FloatingImageState.CLOSED:
+                self.removeImageFromSelection(img_name)
                 self._board_window.closeImage(img_name)
                 self.deleteImage(img_name)
             case FloatingImageState.SELECTED:
@@ -179,12 +179,18 @@ class ReferenceBoard:
                 self.lowerImageZ(img_name)
             case _:
                 self.updateModifiedStatus(True)
-        # print(f'ref board - item in scene: {len(self._board_window._board_scene.items())}')
 
+    def removeImageFromSelection(self, img_name: str) -> None:
+        for img_name in self._selected_images:
+            # print(f"deselected image: {img_name}")
+            self._selected_images.remove(img_name)
+            self._board_window.deselectImages([img_name])
+
+    # NOTE: this appraoch is valid unless multi selection isn't in place
     def checkSelectedImage(self, img_name: str, selected: bool = True) -> None:
         print(f"selected image: {img_name}")
         if img_name not in self._selected_images:
-            print(f"old selected image: {self._selected_images}")
+            # print(f"old selected image: {self._selected_images}")
             self._board_window.deselectImages(self._selected_images)
             self._selected_images.clear()
             if selected:
