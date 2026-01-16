@@ -54,8 +54,7 @@ def FloatingImageButtonFactory(
 class FloatingImageWidget(QWidget):
     _pixmap: QPixmap = None
     _pixmap_size: QSize = None
-    _drag_position: QPoint = QPoint()
-
+    _drag_position: QPoint = None
     _image_model: ReferenceImageModel = None
     _image_name: str = ""
 

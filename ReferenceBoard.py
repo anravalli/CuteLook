@@ -20,8 +20,8 @@ class ReferenceBoard:
     _is_new: bool = False
     _disable_event_filter: bool = True
     _next_z: int = 0
-    _z_stack: dict[int, str] = {}
-    _selected_images: list[str] = []
+    _z_stack: dict[int, str] = None
+    _selected_images: list[str] = None
 
     def __init__(
         self,
@@ -30,7 +30,8 @@ class ReferenceBoard:
         view: ReferenceBoardView,
         view_state: BoardViewState = BoardViewState(),
     ) -> None:
-        # super().__init__()
+        self._z_stack = {}
+        self._selected_images = []
         self._board_id = board_id
         self._reference_board = model
         self._board_window = view
@@ -121,9 +122,13 @@ class ReferenceBoard:
                 # show warning
                 self._board_window.showMissingImageWarning(image_name, image_model.path)
 
+            if image_model.z_order < 0:
+                image_model.z_order = self._next_z
+
             self._z_stack[image_model.z_order] = image_name
-            self._next_z = len(self._z_stack)
-            print(f"next Z: {self._next_z}")
+            self._next_z += 1
+
+        print(f"next Z: {self._next_z}")
 
     # need unit test
     def addNewImage(self, image_path: pathlib.Path) -> None:
@@ -213,6 +218,7 @@ class ReferenceBoard:
             print(f"...new zeta order is: {new_z}")
             self._board_window.setImageZvalue(img_name, new_z)
             self._board_window.setImageZvalue(upper_img, curr_z)
+            self.updateModifiedStatus(True)
 
     def lowerImageZ(self, img_name: str) -> None:
         curr_z = self._reference_board.reference_images[img_name].z_order
@@ -227,6 +233,7 @@ class ReferenceBoard:
             print(f"...new zeta order is: {new_z}")
             self._board_window.setImageZvalue(img_name, new_z)
             self._board_window.setImageZvalue(lower_img, curr_z)
+            self.updateModifiedStatus(True)
 
     # need unit test
     def deleteImage(self, name: str) -> None:

@@ -29,10 +29,10 @@ class ReferenceBoardAction:
 
 
 class ReferenceBoardView(QMainWindow):
-    _opened_images: dict[str, FloatingImageWidget] = {}
+    _opened_images: dict[str, FloatingImageWidget] = None
     _image_hidden: bool = False
     _use_os_theme: bool = False
-    _board_actions: dict[str, ReferenceBoardAction] = {}
+    _board_actions: dict[str, ReferenceBoardAction] = None
 
     board_id: int = 0
     _board_area: QGraphicsView = None
@@ -51,6 +51,8 @@ class ReferenceBoardView(QMainWindow):
     def __init__(self, board_id: int):
         super().__init__()
 
+        self._board_actions = {}
+        self._opened_images = {}
         self._board_id = board_id
 
         # self.setGeometry(100, 100, 800, 600)
@@ -84,11 +86,17 @@ class ReferenceBoardView(QMainWindow):
         #         margin-left: -5px;
         #     }
         # """)
-
+        print(f'--- board {self}"')
+        print(f'--- board dict: {self.__dict__}"')
+        print(f"--- board actions ref: {hex(id(self._board_actions))}")
+        print(f'--- board actions content: \n\t {self._board_actions}"')
+        print(f"--- _opened_images ref: {hex(id(self._opened_images))}")
+        print(f"--- _opened_images ref: \n\t{self._opened_images}")
         for board_action in self._board_actions.values():
             if board_action is None:
                 context_menu.addSeparator()
                 continue
+            print(f'--- action instance: {board_action.action}"')
             context_menu.addAction(board_action.action)
         self.addAdditionalActions(context_menu)
         self._context_menu_pos = point
@@ -193,9 +201,7 @@ class ReferenceBoardView(QMainWindow):
         self._board_actions["close_board"].icon = QIcon("icons/cross.svg")
         self._board_actions["save_board"].icon = QIcon("icons/disk.svg")
         self._board_actions["save_as_board"].icon = QIcon("icons/floppy-disk-pen.svg")
-        print(f'add_image icon "{self._board_actions["add_image"].icon}"')
         self._board_actions["add_image"].icon = QIcon("icons/add-image.svg")
-        print(f'add_image icon "{self._board_actions["add_image"].icon}"')
         self._board_actions["show_hide_image"].icon = QIcon("icons/eye.svg")
         self._board_actions["show_hide_image"].icon2 = QIcon("icons/eye-crossed.svg")
         self._board_actions["show_hide_image"].icon3 = QIcon("icons/low-vision.svg")

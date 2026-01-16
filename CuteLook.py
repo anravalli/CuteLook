@@ -17,6 +17,7 @@ class CuteLook:
     _boards: dict[int, ReferenceBoard] = {}
     _app_config: CuteLookConfig = CuteLookConfig()
     _app_config_path: Path = Path("~/.config/CuteLook.conf")
+    _next_board_id = 0
 
     def __init__(self, board_path: str = "") -> None:
         super().__init__()
@@ -52,14 +53,16 @@ class CuteLook:
                 str(Path.home()) + "/" + board_model.board_name + ".refboard"
             )
 
-        # 1.1 get the board id for this session
-        next_id = len(self._boards)
+        # 1. get board id
+        # board id for this session are per session ad are only incremented
+        new_board_id = self._next_board_id
+        self._next_board_id += 1
 
         # 2. create the view
-        board_view = ReferenceBoardView(next_id)
+        board_view = ReferenceBoardView(new_board_id)
 
         # 3. create the controller
-        new_board = ReferenceBoard(next_id, board_model, board_view)
+        new_board = ReferenceBoard(new_board_id, board_model, board_view)
         new_board.updateModifiedStatus(is_new)
         new_board._is_new = is_new
         new_board.setBoardPath(board_path)
@@ -70,13 +73,13 @@ class CuteLook:
         board_view.new_board.connect(self.openBoard)
 
         # 5. store the board
-        self._boards[next_id] = new_board
+        self._boards[new_board_id] = new_board
 
         if not new_board._is_new:
             self.addBoardToRecent(new_board)
 
     def closeBoard(self, board_id: int) -> None:
-        print("CuteLook - closeBoard")
+        print(f"CuteLook - close board: {board_id}")
         try:
             if self._boards[board_id].canBeClosed():
                 print(f"Storing state for board {board_id}")

@@ -6,15 +6,24 @@ from UnitTesting import RunTest
 
 class BoardViewState(BaseModel):
     maximized: bool = False
-    position: dict[str, int] = {"x": 100, "y": 100}
-    size: dict[str, int] = {"w": 800, "h": 600}
+    position: dict[str, int] = None
+    size: dict[str, int] = None
     screen: str = "HDMI-1"
+
+    def __init__():
+        super().__init__()
+        self.position = {"x": 100, "y": 100}
+        self.size = {"w": 800, "h": 600}
 
 
 class RefBoard(BaseModel):
     index: int = 0
     path: Path = Path("~/unknown.refboard")
-    view_state: BoardViewState = BoardViewState()
+    view_state: BoardViewState = None
+
+    def __init__():
+        super().__init__()
+        self.view_state = BoardViewState()
 
 
 class CuteLookConfig(BaseModel):

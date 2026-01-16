@@ -14,19 +14,14 @@
 - DONE - migliora save e saveas con suggerimento basato su nome board
 
 -------------------
-bachi
 
-- crash quando si apre il menu contestuale dopo la chiusura di una board
-    Traceback (most recent call last):
-    File "/home/andrea/Projects/CuteLook/ReferenceBoardView.py", line 96, in showBoardContexMenu
-        context_menu.addAction(board_action.action)
-        ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
-    RuntimeError: wrapped C/C++ object of type QAction has been deleted
-    Aborted (core dumped)
-- crash su chiusura immagine
-- nuova board distrugge vecchia dopo chiusura di una board
-- menu contestuale posizionato scorrettamente
-FIXED - crash su deselect dopo chiusura immagine
+# KNOWN ISSUES and BUGS
+
+FIXED - crash on context menu open after closing a board
+- crash when changing Z order after an immage is closed
+FIXED - with N boards, after closing board N-1, every new board replace the old one
+- context menu is wrongly placed
+FIXED - crash on "deselect" after an immage is closed
 
 
 
