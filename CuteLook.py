@@ -30,24 +30,24 @@ class CuteLook:
             config_dir.mkdir(parents=True, exist_ok=True)
             self.updateConfigFile()
 
-        print(f"board_path: {board_path}")
+        # print(f"board_path: {board_path}")
         self.openBoard(board_path)
 
     def boardFactory(self, path: str):
-        print(f"CuteLook - boardFactory ({path})")
+        # print(f"CuteLook - boardFactory ({path})")
         # 1. create the model
         board_model = None
         board_path = Path(path).resolve()
         is_new = True
 
         if board_path.exists() and board_path.is_file():
-            print(f"Opening board: {board_path}")
+            # print(f"Opening board: {board_path}")
             with open(board_path, "r", encoding="utf-8") as f:
                 json_board = f.read()
             board_model = ReferenceBoardModel.model_validate_json(json_board)
             is_new = False
         else:
-            print("Creating new empty board")
+            # print("Creating new empty board")
             board_model = ReferenceBoardModel()
             board_path = Path(
                 str(Path.home()) + "/" + board_model.board_name + ".refboard"
@@ -68,7 +68,7 @@ class CuteLook:
         new_board.setBoardPath(board_path)
 
         # 4. connect relevant view's signals to manager (this)
-        print("CuteLook - connect signals")
+        # print("CuteLook - connect signals")
         board_view.close_board.connect(self.closeBoard)
         board_view.new_board.connect(self.openBoard)
 
@@ -82,12 +82,12 @@ class CuteLook:
         print(f"CuteLook - close board: {board_id}")
         try:
             if self._boards[board_id].canBeClosed():
-                print(f"Storing state for board {board_id}")
+                # print(f"Storing state for board {board_id}")
                 self.storeBoardState(board_id)
                 self._boards[board_id].close()
-                print(f"removing board {board_id}")
+                # print(f"removing board {board_id}")
                 del self._boards[board_id]
-                print("...removed")
+                # print("...removed")
 
             if not len(self._boards):
                 print("Last board closed: exit")
@@ -102,19 +102,19 @@ class CuteLook:
         self.updateConfigFile()
 
     def storeBoardState(self, board_id: int) -> None:
-        print("storeBoardState")
+        # print("storeBoardState")
         board_view_state = self._boards[board_id].getViewState()
         board_path = self._boards[board_id]._board_path
         for saved_board in self._app_config.recent_boards:
             if board_path == saved_board.path:
                 # update existing board
-                print("update existing board")
+                # print("update existing board")
                 saved_board.view_state = board_view_state
                 break
         self.updateConfigFile()
 
     def updateConfigFile(self) -> None:
-        print("updateConfigFile")
+        # print("updateConfigFile")
         with open(self._app_config_path, "w", encoding="utf-8") as f:
             json_output = self._app_config.model_dump_json(indent=4)
             f.write(json_output)
@@ -125,12 +125,12 @@ class CuteLook:
         self._app_config = CuteLookConfig.model_validate_json(json_cfg)
 
     def addBoardToRecent(self, board: ReferenceBoard) -> None:
-        print("addBoardToRecent")
+        # print("addBoardToRecent")
         is_recent = False
         for i, saved_board in enumerate(self._app_config.recent_boards):
-            print(f"board: {board._board_path}, saved board: {saved_board.path}")
+            # print(f"board: {board._board_path}, saved board: {saved_board.path}")
             if board._board_path == saved_board.path:
-                print("restore existing board")
+                # print("restore existing board")
                 board.restoreViewState(saved_board.view_state)
                 # move on to the top of recent boards list
                 self._app_config.recent_boards.pop(i)
@@ -138,7 +138,7 @@ class CuteLook:
                 is_recent = True
                 break
         if not is_recent:
-            print("add board to recent")
+            # print("add board to recent")
             board_list_entry = RefBoard()
             board_list_entry.path = board._board_path
             board_list_entry.view_state = board.getViewState()  # FIXME review needed
@@ -153,6 +153,6 @@ if __name__ == "__main__":
     ref_board = ""
     if len(sys.argv) > 1:
         ref_board = sys.argv[1]
-        print(f"Loading refernece board: {ref_board}")
+        # print(f"Loading refernece board: {ref_board}")
     cl = CuteLook(ref_board)
     sys.exit(app.exec_())

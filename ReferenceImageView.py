@@ -168,7 +168,7 @@ class FloatingImageWidget(QWidget):
         super().leaveEvent(event)
 
     def updateZetaOrder(self) -> None:
-        print("updating z")
+        # print("updating z")
         proxy = self.graphicsProxyWidget()
         z = self._image_model.z_order
         if proxy:
@@ -184,7 +184,7 @@ class FloatingImageWidget(QWidget):
         if event.button() == Qt.LeftButton:
             self._drag_position = event.globalPos() - self.frameGeometry().topLeft()
             if modifiers == Qt.KeyboardModifier.ControlModifier:
-                print("Click effettuato mentre CTRL era premuto")
+                # print("Click effettuato mentre CTRL era premuto")
                 self.image_state_changed.emit(
                     self._image_name, FloatingImageState.SELECTED
                 )

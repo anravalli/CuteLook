@@ -68,7 +68,7 @@ class ReferenceBoard:
 
     def save(self, change_name: bool = False) -> None:
         print(f"saving board: {self._reference_board.board_name}")
-        print(f"...to: {self._board_path}")
+        # print(f"...to: {self._board_path}")
 
         save_to = self._board_path
         if self._is_new or change_name:
@@ -77,7 +77,7 @@ class ReferenceBoard:
                 str(dirname) + "/" + self._reference_board.board_name + ".refboard"
             )
             save_to = pathlib.Path(self._board_window.openSaveDialog(str(save_to)))
-            print(f"(now) saving to: {save_to}")
+            # print(f"(now) saving to: {save_to}")
             if save_to == pathlib.Path(""):
                 # abort
                 return
@@ -89,7 +89,7 @@ class ReferenceBoard:
         # throw if error/fails
         if self._modified:
             # Exceptions will be farwarded to the caller
-            print(f"...to: {self._board_path}")
+            # print(f"...to: {self._board_path}")
             with open(save_to, "w", encoding="utf-8") as f:
                 json_output = self._reference_board.model_dump_json(indent=4)
                 f.write(json_output)
@@ -97,12 +97,12 @@ class ReferenceBoard:
 
     # need unit test
     def canBeClosed(self) -> bool:
-        print(f"Check if board {self._board_id} can be closed")
+        # print(f"Check if board {self._board_id} can be closed")
         close_ok = True
         if self._modified:
-            print("board is modified")
+            # print("board is modified")
             close_ok = self._board_window.confirmClose()
-            print(f"close_ok: {close_ok}")
+            # print(f"close_ok: {close_ok}")
         return close_ok
 
     def close(self):
@@ -128,13 +128,13 @@ class ReferenceBoard:
             self._z_stack[image_model.z_order] = image_name
             self._next_z += 1
 
-        print(f"next Z: {self._next_z}")
+        # print(f"next Z: {self._next_z}")
 
     # need unit test
     def addNewImage(self, image_path: pathlib.Path) -> None:
         # check file path
         if not (image_path.exists() and image_path.is_file()):
-            print(f"ERROR: invalid path: {pathlib.Path}")
+            # print(f"ERROR: invalid path: {pathlib.Path}")
             raise Exception("invalid path")
         print(f'adding image "{image_path}"')
 
@@ -159,7 +159,7 @@ class ReferenceBoard:
         self._reference_board.reference_images[image_name] = image_model
         self.updateModifiedStatus(True)
         self._next_z += 1
-        print(f'added image "{image_name}"')
+        # print(f'added image "{image_name}"')
 
     # need unit test
     def imageChanged(self, img_name: str, state: FloatingImageState) -> None:
@@ -191,7 +191,7 @@ class ReferenceBoard:
         self.deleteImage(img_name)
 
     def __fixZStack(self, img_name):
-        print(f"__fixZStack ({img_name})")
+        # print(f"__fixZStack ({img_name})")
         # get Z of the about to delete image
         z_delete = self._reference_board.reference_images[img_name].z_order
         stack_size = len(self._reference_board.reference_images)
@@ -236,14 +236,14 @@ class ReferenceBoard:
     def raiseImageZ(self, img_name: str) -> None:
         curr_z = self._reference_board.reference_images[img_name].z_order
         new_z = curr_z + 1
-        print(f"{img_name} zeta order is: {curr_z}")
+        # print(f"{img_name} zeta order is: {curr_z}")
         if new_z < len(self._z_stack):
             self._reference_board.reference_images[img_name].z_order = new_z
             upper_img = self._z_stack[new_z]
             self._reference_board.reference_images[upper_img].z_order = curr_z
             self._z_stack[new_z] = img_name
             self._z_stack[curr_z] = upper_img
-            print(f"...new zeta order is: {new_z}")
+            # print(f"...new zeta order is: {new_z}")
             self._board_window.setImageZvalue(img_name, new_z)
             self._board_window.setImageZvalue(upper_img, curr_z)
             self.updateModifiedStatus(True)
@@ -251,14 +251,14 @@ class ReferenceBoard:
     def lowerImageZ(self, img_name: str) -> None:
         curr_z = self._reference_board.reference_images[img_name].z_order
         new_z = curr_z - 1
-        print(f"{img_name} zeta order is: {curr_z}")
+        # print(f"{img_name} zeta order is: {curr_z}")
         if new_z >= 0:
             self._reference_board.reference_images[img_name].z_order = new_z
             lower_img = self._z_stack[new_z]
             self._reference_board.reference_images[lower_img].z_order = curr_z
             self._z_stack[new_z] = img_name
             self._z_stack[curr_z] = lower_img
-            print(f"...new zeta order is: {new_z}")
+            # print(f"...new zeta order is: {new_z}")
             self._board_window.setImageZvalue(img_name, new_z)
             self._board_window.setImageZvalue(lower_img, curr_z)
             self.updateModifiedStatus(True)
@@ -304,29 +304,29 @@ class ReferenceBoard:
         return self._reference_board
 
     def getViewState(self) -> BoardViewState:
-        print(f'Getting view state for board "{self._board_id}"')
+        # print(f'Getting view state for board "{self._board_id}"')
         view_state = BoardViewState()
 
         size = self._board_window.size()
         view_state.size["w"] = size.width()
         view_state.size["h"] = size.height()
-        print(f"...size: {size.width()}x{size.height()}")
+        # print(f"...size: {size.width()}x{size.height()}")
 
         if self._board_window.isMaximized():
-            print("...is maximized")
+            # print("...is maximized")
             view_state.maximized = True
         else:
             view_state.maximized = False
 
         pos = self._board_window.pos()
-        print(f"...position: {pos.x()}x{pos.y()}")
+        # print(f"...position: {pos.x()}x{pos.y()}")
         view_state.position["x"] = pos.x()
         view_state.position["y"] = pos.y()
 
         return view_state
 
     def restoreViewState(self, view_state):
-        print(f"restoring view state: {view_state}")
+        # print(f"restoring view state: {view_state}")
         if view_state.maximized:
             self._board_window.setWindowState(Qt.WindowState.WindowMaximized)
         else:
@@ -349,11 +349,11 @@ test_data = {
 
 class FakeReferenceBoardView:
     def show(self):
-        print("FakeReferenceBoardView - show()")
+        # print("FakeReferenceBoardView - show()")
         pass
 
     def close(self):
-        print("FakeReferenceBoardView - show()")
+        # print("FakeReferenceBoardView - show()")
         pass
 
 

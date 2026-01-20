@@ -86,17 +86,17 @@ class ReferenceBoardView(QMainWindow):
         #         margin-left: -5px;
         #     }
         # """)
-        print(f'--- board {self}"')
-        print(f'--- board dict: {self.__dict__}"')
-        print(f"--- board actions ref: {hex(id(self._board_actions))}")
-        print(f'--- board actions content: \n\t {self._board_actions}"')
-        print(f"--- _opened_images ref: {hex(id(self._opened_images))}")
-        print(f"--- _opened_images ref: \n\t{self._opened_images}")
+        # print(f'--- board {self}"')
+        # print(f'--- board dict: {self.__dict__}"')
+        # print(f"--- board actions ref: {hex(id(self._board_actions))}")
+        # print(f'--- board actions content: \n\t {self._board_actions}"')
+        # print(f"--- _opened_images ref: {hex(id(self._opened_images))}")
+        # print(f"--- _opened_images ref: \n\t{self._opened_images}")
         for board_action in self._board_actions.values():
             if board_action is None:
                 context_menu.addSeparator()
                 continue
-            print(f'--- action instance: {board_action.action}"')
+            # print(f'--- action instance: {board_action.action}"')
             context_menu.addAction(board_action.action)
         self.addAdditionalActions(context_menu)
         self._context_menu_pos = point
@@ -124,7 +124,7 @@ class ReferenceBoardView(QMainWindow):
         toolbar = self.addToolBar("Main Toolbar")
         toolbar.setIconSize(QSize(24, 16))
         # toolbar.setFloatable(True)
-        print(f"toolbar is floatable: {toolbar.isFloatable()}")
+        # print(f"toolbar is floatable: {toolbar.isFloatable()}")
         # create actions
         self.configureBoardActions()
         # add actions to toolbar
@@ -141,29 +141,29 @@ class ReferenceBoardView(QMainWindow):
 
         # add icons based on the current configuration
         if self._use_os_theme:
-            print("calling addBoardActionsIconsFromTheme")
+            # print("calling addBoardActionsIconsFromTheme")
             self.addBoardActionsIconsFromTheme()
         else:
-            print("calling initBoardActions")
+            # print("calling initBoardActions")
             self.addBoardActionsIconsCustom()
 
         # create actions
         self.createBoardActions()
 
     def createBoardActions(self) -> None:
-        print("createBoardActions")
+        # print("createBoardActions")
         for board_action in self._board_actions.values():
             if board_action is not None:
-                print(f'action "{board_action.text}"')
+                # print(f'action "{board_action.text}"')
                 board_action.action = QAction(
                     board_action.icon, board_action.text, self
                 )
                 board_action.action.setStatusTip(board_action.tooltip)
-                print(f'action instance: {board_action.action}"')
+                # print(f'action instance: {board_action.action}"')
 
     def initBoardActions(self) -> None:
         # TODO read actions configuration from some configuration resource
-        print("initBoardActions")
+        # print("initBoardActions")
         self._board_actions["new_board"] = ReferenceBoardAction()
         self._board_actions["new_board"].text = "New Board"
         self._board_actions["new_board"].tooltip = "Create a new board"
@@ -195,7 +195,7 @@ class ReferenceBoardView(QMainWindow):
         self._board_actions["show_hide_image"].tooltip = "Show/Hide all images"
 
     def addBoardActionsIconsCustom(self) -> None:
-        print("addBoardActionsIconsCustom")
+        # print("addBoardActionsIconsCustom")
         self._board_actions["new_board"].icon = QIcon("icons/add-document.svg")
         self._board_actions["open_board"].icon = QIcon("icons/folder-open.svg")
         self._board_actions["close_board"].icon = QIcon("icons/cross.svg")
@@ -241,7 +241,7 @@ class ReferenceBoardView(QMainWindow):
         self.close_board.emit(self._board_id)
 
     def closeEvent(self, event: QCloseEvent):
-        print(f"closeEvent - board window: {self._board_id}")
+        # print(f"closeEvent - board window: {self._board_id}")
         self.close_board.emit(self._board_id)
         event.ignore()
 
@@ -253,9 +253,9 @@ class ReferenceBoardView(QMainWindow):
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No,
         )
-        print(f"reply: {reply}")
-        print(f"NO: {QMessageBox.No}")
-        print(f"Yes: {QMessageBox.Yes}")
+        # print(f"reply: {reply}")
+        # print(f"NO: {QMessageBox.No}")
+        # print(f"Yes: {QMessageBox.Yes}")
         return reply == QMessageBox.Yes
 
     def saveBoard(self) -> None:
@@ -337,7 +337,7 @@ class ReferenceBoardView(QMainWindow):
         super().mousePressEvent(event)
 
     def deselectImages(self, images: list[str] = []) -> None:
-        print(f"images to deselect: {images}")
+        # print(f"images to deselect: {images}")
         if len(images):
             for image in images:
                 self._opened_images[image].widget().deselect()
