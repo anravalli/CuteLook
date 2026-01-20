@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (
     QGraphicsView,
     QGraphicsScene,
 )
-from PyQt5.QtGui import QCloseEvent, QIcon
+from PyQt5.QtGui import QCloseEvent, QIcon, QCursor
 from PyQt5.QtCore import Qt, QSize, QPoint, pyqtSignal
 
 from ReferenceImageView import FloatingImageWidget
@@ -99,8 +99,8 @@ class ReferenceBoardView(QMainWindow):
             # print(f'--- action instance: {board_action.action}"')
             context_menu.addAction(board_action.action)
         self.addAdditionalActions(context_menu)
-        self._context_menu_pos = point
-        context_menu.exec_(self._board_area.mapToGlobal(point))
+        self._context_menu_pos = self._board_area.mapToGlobal(point)
+        context_menu.exec_(self._context_menu_pos)
 
     def addAdditionalActions(self, context_menu: QMenu):
         context_menu.addSeparator()
@@ -109,10 +109,8 @@ class ReferenceBoardView(QMainWindow):
         context_menu.addAction(rename)
 
     def renameBoard(self):
-        # dialog = QDialog()
-        line_edit = FloatingLineEdit(
-            "New board name", pos=self._context_menu_pos, parent=self
-        )
+        le_pos = QPoint(self._context_menu_pos.x(), QCursor.pos().y())
+        line_edit = FloatingLineEdit("New board name", pos=le_pos, parent=self)
 
         def accept_input():
             self.rename_board.emit(line_edit.text())

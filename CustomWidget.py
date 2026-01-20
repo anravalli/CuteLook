@@ -57,7 +57,7 @@ class FloatingLineEdit(QLineEdit):
         parent: QWidget = None,
     ) -> None:
         super().__init__(parent)
-        self.setGeometry(pos.x(), pos.y(), width, height)
+        self.setGeometry(pos.x(), round(pos.y() - height / 2), width, height)
         self.setPlaceholderText(label)
         self.setFocus()
         self.show()
@@ -71,6 +71,10 @@ class FloatingLineEdit(QLineEdit):
             self.close()
         else:
             super().keyPressEvent(event)
+
+    def focusOutEvent(self, event):
+        self.close()
+        super().focusOutEvent(event)
 
 
 class FloatingControlButton(QPushButton):
