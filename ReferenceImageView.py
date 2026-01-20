@@ -93,6 +93,9 @@ class FloatingImageWidget(QWidget):
 
         self.addControlButtons()
 
+        # init _drag_position here to prevent random crash
+        self._drag_position = QPoint()
+
     def addControlButtons(self) -> None:
         self._close_button = FloatingImageButtonFactory(
             FloatingImageButtonTypes.CLOSE, self

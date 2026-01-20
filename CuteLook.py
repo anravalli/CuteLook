@@ -31,13 +31,13 @@ class CuteLook:
             self.updateConfigFile()
 
         print(f"board_path: {board_path}")
-        self.boardFactory(board_path)
+        self.openBoard(board_path)
 
     def boardFactory(self, path: str):
         print(f"CuteLook - boardFactory ({path})")
         # 1. create the model
         board_model = None
-        board_path = Path(path)
+        board_path = Path(path).resolve()
         is_new = True
 
         if board_path.exists() and board_path.is_file():
@@ -102,15 +102,19 @@ class CuteLook:
         self.updateConfigFile()
 
     def storeBoardState(self, board_id: int) -> None:
+        print("storeBoardState")
         board_view_state = self._boards[board_id].getViewState()
         board_path = self._boards[board_id]._board_path
         for saved_board in self._app_config.recent_boards:
             if board_path == saved_board.path:
+                # update existing board
+                print("update existing board")
                 saved_board.view_state = board_view_state
                 break
         self.updateConfigFile()
 
     def updateConfigFile(self) -> None:
+        print("updateConfigFile")
         with open(self._app_config_path, "w", encoding="utf-8") as f:
             json_output = self._app_config.model_dump_json(indent=4)
             f.write(json_output)
@@ -121,19 +125,24 @@ class CuteLook:
         self._app_config = CuteLookConfig.model_validate_json(json_cfg)
 
     def addBoardToRecent(self, board: ReferenceBoard) -> None:
+        print("addBoardToRecent")
         is_recent = False
         for i, saved_board in enumerate(self._app_config.recent_boards):
+            print(f"board: {board._board_path}, saved board: {saved_board.path}")
             if board._board_path == saved_board.path:
+                print("restore existing board")
                 board.restoreViewState(saved_board.view_state)
+                # move on to the top of recent boards list
                 self._app_config.recent_boards.pop(i)
                 self._app_config.recent_boards.insert(0, saved_board)
                 is_recent = True
                 break
         if not is_recent:
+            print("add board to recent")
             board_list_entry = RefBoard()
             board_list_entry.path = board._board_path
             board_list_entry.view_state = board.getViewState()  # FIXME review needed
-            self._app_config.recent_boards.append(board_list_entry)
+            self._app_config.recent_boards.insert(0, board_list_entry)
 
 
 if __name__ == "__main__":

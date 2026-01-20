@@ -167,23 +167,51 @@ class ReferenceBoard:
             case FloatingImageState.HIDDEN:
                 self._board_window.setImageHide()
             case FloatingImageState.CLOSED:
-                self.removeImageFromSelection(img_name)
-                self._board_window.closeImage(img_name)
-                self.deleteImage(img_name)
+                self.closeImage(img_name)
             case FloatingImageState.SELECTED:
-                print(f"image selected: {img_name}")
+                # print(f"image selected: {img_name}")
                 self.checkSelectedImage(img_name)
             case FloatingImageState.UNSELECTED:
-                print(f"image deselect: {img_name}")
+                # print(f"image deselect: {img_name}")
                 self.checkSelectedImage(img_name, False)
             case FloatingImageState.ZRAISED:
-                print(f"image z raised: {img_name}")
+                # print(f"image z raised: {img_name}")
                 self.raiseImageZ(img_name)
             case FloatingImageState.ZLOWERED:
-                print(f"image z lowered: {img_name}")
+                # print(f"image z lowered: {img_name}")
                 self.lowerImageZ(img_name)
             case _:
                 self.updateModifiedStatus(True)
+
+    def closeImage(self, img_name: str):
+        print(f"closeImage ({img_name})")
+        self.removeImageFromSelection(img_name)
+        self.__fixZStack(img_name)
+        self._board_window.closeImage(img_name)
+        self.deleteImage(img_name)
+
+    def __fixZStack(self, img_name):
+        print(f"__fixZStack ({img_name})")
+        # get Z of the about to delete image
+        z_delete = self._reference_board.reference_images[img_name].z_order
+        stack_size = len(self._reference_board.reference_images)
+        # z_top = stack_size - 1
+        # iterate over the image stacked above the current one
+        for img_idx in range(z_delete + 1, stack_size):
+            # self._reference_board.reference_images[img_name].z_order -= 1
+            # get the image to shift
+            img = self._z_stack[img_idx]
+            # new index for the image
+            new_z_index = img_idx - 1
+            # shift down image in the stack
+            self._z_stack[new_z_index] = img
+            # set the new z order for the image
+            self._reference_board.reference_images[img].z_order = new_z_index
+            # tell the view that z has changed
+            self._board_window.setImageZvalue(img, new_z_index)
+
+        # shirnk the stack
+        self._z_stack.pop(z_delete)
 
     def removeImageFromSelection(self, img_name: str) -> None:
         for img_name in self._selected_images:
@@ -193,7 +221,7 @@ class ReferenceBoard:
 
     # NOTE: this appraoch is valid unless multi selection isn't in place
     def checkSelectedImage(self, img_name: str, selected: bool = True) -> None:
-        print(f"selected image: {img_name}")
+        # print(f"selected image: {img_name}")
         if img_name not in self._selected_images:
             # print(f"old selected image: {self._selected_images}")
             self._board_window.deselectImages(self._selected_images)

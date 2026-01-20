@@ -18,13 +18,10 @@
 # KNOWN ISSUES and BUGS
 
 FIXED - crash on context menu open after closing a board
-- crash when changing Z order after an immage is closed
+FIXED - crash when changing Z order after an immage is closed
 FIXED - with N boards, after closing board N-1, every new board replace the old one
 - context menu is wrongly placed
 FIXED - crash on "deselect" after an immage is closed
-
-
-
 
 ---------------------------
 Idee UI/UX
