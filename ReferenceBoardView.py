@@ -14,7 +14,7 @@ from PyQt5.QtGui import QCloseEvent, QIcon, QCursor
 from PyQt5.QtCore import Qt, QSize, QPoint, pyqtSignal
 
 from ReferenceImageView import FloatingImageWidget
-from CustomWidget import FloatingLineEdit
+from CustomWidgets import FloatingLineEdit
 
 # from ReferenceBoard import *
 from ReferenceBoardModels import ReferenceImageModel

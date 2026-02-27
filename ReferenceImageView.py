@@ -4,15 +4,12 @@ from PyQt5.QtGui import QPixmap, QPainter, QIcon
 from PyQt5.QtCore import Qt, QPoint, QSize, pyqtSignal
 
 from ReferenceBoardModels import ReferenceImageModel
-from CustomWidget import FloatingControlButton
+from CustomWidgets import (
+    FloatingControlButton,
+    FloatingImageButtonTypes,
+    FloatingImageButtonFactory,
+)
 from enum import Enum
-
-
-class FloatingImageButtonTypes(Enum):
-    CLOSE = 0
-    MINIMIZE = 1
-    RAISE = 2
-    LOWER = 3
 
 
 class FloatingImageState(Enum):
@@ -26,29 +23,6 @@ class FloatingImageState(Enum):
     ZLOWERED = 7
     SELECTED = 8
     UNSELECTED = 9
-
-
-def FloatingImageButtonFactory(
-    button_type: FloatingImageButtonTypes, parent: QWidget = None
-) -> FloatingControlButton:
-    icon = None
-    color = ""
-    match button_type:
-        case FloatingImageButtonTypes.CLOSE:
-            icon = QIcon("icons/cross-small.svg")
-            color = "red"
-        case FloatingImageButtonTypes.MINIMIZE:
-            icon = QIcon("icons/minus-small.svg")
-            color = "yellow"
-        case FloatingImageButtonTypes.RAISE:
-            icon = QIcon("icons/arrow-up.svg")
-            color = "#1f00f0"
-        case FloatingImageButtonTypes.LOWER:
-            icon = QIcon("icons/arrow-down.svg")
-            color = "#1f00f0"
-
-    button = FloatingControlButton(icon, color, parent)
-    return button
 
 
 class FloatingImageWidget(QWidget):
