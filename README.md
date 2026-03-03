@@ -3,7 +3,13 @@
 # CuteLook
 
 A simple application to help artist load and manage their reference images
+
 <br/>
+
+![CuteLook](docs/demo.png)
+
+<br/>
+
 Image mode:
 - Description: allow basic image manipulation
 - Available actions:
