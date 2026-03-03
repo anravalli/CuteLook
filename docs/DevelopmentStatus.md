@@ -8,26 +8,48 @@
 <br/>
 
 ### Version 0.9
+Goals: basic features and application core functionalities.
+
+Status:
+- [x] add a proper toolbar with icons and actions
+- [x] add context menu (right-click)
+- [x] store images and their positions into board model 
+- [x] multi image selection and loading
+- [x] improvwe save and save-as feature with file name suggestions based on board name
+- [x] update board model when an image is scaled or moved
+- [x] when selected, images are temporary moved to foregraund 
+- [x] images Z-order can be changed using the designed controll buttons 
+- [x] images Z-order shall be saved into board file and restored on load
 - [ ] enter "edit mode"/"image selection" with double click
-- [x] update board model when the image is scaled
-- [x] selezione e portare in primo piano con ctrl+left_click
-- [x] riposizionare le immagini al caricamento da file
-- [x]  Z-order (+ save&restore)
-- [ ] centratura su zoom immagini
-- [ ] pan immagini (+ save&restore)
-- [ ] crop and resize delle immagini (+ save&restore)
-- [x] salvare dimensioni e stato della finestra (massimizzata o no)
-- [ ] menu "board recenti"
-- [ ] verificare che all'apertura di una board le immagini siano sempre visibili sulla canvas
-- [x] aggiungere toolbar con icone al posto dei buttons
-- [x] aggiungere menu contestuale (right-click)
-- [x] multi image open
-- [x] migliora save e saveas con suggerimento basato su nome board
+- [ ] all control buttons and resize handles shall be visible when in edit mode
+- [ ] mouse wheel rotation over an image while in edit mode scale only the content
+- [ ] mouse wheel rotation over an image while pressing "control" in board mode, scales the whole image window
+- [ ] mouse wheel rotation over the board or image while in board mode, zoom in/out the whole board
+- [ ] pressing mouse middle over the board or image while in board mode pan the the whole board
+- [x] dragging the maouse while in edit mode shall pan image (content)
+- [x] dragging the resize will change size/shape of the image view port whitout affecting the content
+- [ ] the view port shall never show empty spaces
+- [ ] store current panning and view port size into model, board file, and restore on load
+- [x] board window position, size and state shall be stored into board file and restored on load
+- [ ] store board view zoom and center to file and restore it on load
+- [ ] add "fit to window" state for the board
 
 ### Version 1.0
-- [ ] UI cleanup
+Goals: UI and UX improvement
+- [ ] prepare an UI mockup
+- [ ] colored selection box around the selected image
+- [ ] move control buttons to a dedicated custom toolbar above the image window
+- [ ] add a "grip" handle to control toolbar to move the image window while in edit mode 
+- [ ] selection box and control toolbar shall be allways visible in forground, on to of any image
+- [ ] change mouse shape according to the current action (dragging, resizing, etc.)
+- [ ] redesign the resize handles
+- [ ] implement a "recently opened boards" list and make it available through the file menu
+- [ ] poster tool: generate a variable resolution image of the board (all the images stiched together)
+- [ ] add a proper build/packging infrastructure to ease app distribution
+- [ ] add native Windows support add 
 
 ### Future Releases (2.0)
+Goal: move forward from a "decent" app for managing reference images to something
 <br/>
 
 #### FEAT-01: RefImageClip (subclass of RefImage)
