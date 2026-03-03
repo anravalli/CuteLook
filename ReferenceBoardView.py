@@ -343,6 +343,12 @@ class ReferenceBoardView(QMainWindow):
     def setImageZvalue(self, img_name: str, z_order: int) -> None:
         self._opened_images[img_name].setZValue(z_order)
 
+    def setSelectionBox(image_name: str, visible: bool = True):
+        # selection box
+        self.box = SelectionBox(new_size, 2, parent=self)
+        self.box.move(self.pos())
+        self.box.show()
+
 
 if __name__ == "__main__":
     test_list = []

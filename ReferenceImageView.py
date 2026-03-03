@@ -1,6 +1,6 @@
 import typing
 from PyQt5.QtWidgets import QWidget, QSizePolicy
-from PyQt5.QtGui import QPixmap, QPainter, QIcon
+from PyQt5.QtGui import QPixmap, QPainter, QIcon, QPen, QColor
 from PyQt5.QtCore import Qt, QPoint, QSize, pyqtSignal
 
 from ReferenceBoardModels import ReferenceImageModel
@@ -8,6 +8,9 @@ from CustomWidgets import (
     FloatingControlButton,
     FloatingImageButtonTypes,
     FloatingImageButtonFactory,
+    SelectionBox,
+    ResizeHandle,
+    ResizeHandleType,
 )
 from enum import Enum
 
@@ -28,6 +31,7 @@ class FloatingImageState(Enum):
 class FloatingImageWidget(QWidget):
     _pixmap: QPixmap = None
     _pixmap_size: QSize = None
+    _pixmap_offset: QPoint = None
     _drag_position: QPoint = None
     _image_model: ReferenceImageModel = None
     _image_name: str = ""
@@ -56,6 +60,7 @@ class FloatingImageWidget(QWidget):
 
         self._pixmap = QPixmap(image_model.path)
         self._pixmap_size = self._pixmap.size()
+        self._pixmap_offset = QPoint(0, 0)
 
         self.setFixedSize(self._pixmap_size * self._image_model.scale)
         self.setMinimumSize(0, 0)
@@ -66,6 +71,7 @@ class FloatingImageWidget(QWidget):
         self.move(pos["x"], pos["y"])
 
         self.addControlButtons()
+        self.addHandles()
 
         # init _drag_position here to prevent random crash
         self._drag_position = QPoint()
@@ -151,12 +157,16 @@ class FloatingImageWidget(QWidget):
     def deselect(self):
         self._selected = False
         self.hide_buttons()
+        self.hideHandles()
         self.updateZetaOrder()
 
     def mousePressEvent(self, event):
         modifiers = event.modifiers()
         if event.button() == Qt.LeftButton:
-            self._drag_position = event.globalPos() - self.frameGeometry().topLeft()
+            if not self._selected:
+                self._drag_position = event.globalPos() - self.frameGeometry().topLeft()
+            else:
+                self._drag_position = event.pos()
             if modifiers == Qt.KeyboardModifier.ControlModifier:
                 # print("Click effettuato mentre CTRL era premuto")
                 self.image_state_changed.emit(
@@ -166,6 +176,7 @@ class FloatingImageWidget(QWidget):
                 if proxy:
                     proxy.setZValue(self._max_z)
                 self._selected = True
+                self.showHandles()
             else:
                 self.image_state_changed.emit(
                     self._image_name, FloatingImageState.UNSELECTED
@@ -176,9 +187,19 @@ class FloatingImageWidget(QWidget):
 
     def mouseMoveEvent(self, event):
         if event.buttons() == Qt.LeftButton:
-            pos = event.globalPos() - self._drag_position
-            self.move(pos)
-            self._image_model.view_position = {"x": pos.x(), "y": pos.y()}
+            if not self._selected:
+                pos = event.globalPos() - self._drag_position
+                # print(f"pos: {self.pos()}, new pos: {pos}")
+                self.move(pos)
+                self._image_model.view_position = {"x": pos.x(), "y": pos.y()}
+            else:
+                drag = event.pos() - self._drag_position
+                self._drag_position = event.pos()
+                print(f"drag: {drag}, _pixmap_offset: {self._pixmap_offset}")
+                self._pixmap_offset = self._pixmap_offset - drag
+                print(f"--- _pixmap_offset: {self._pixmap_offset}")
+                self.update()
+
             self.image_state_changed.emit(self._image_name, FloatingImageState.MOVED)
             event.accept()
 
@@ -198,34 +219,13 @@ class FloatingImageWidget(QWidget):
             self._image_model.scale = 0.1
 
         new_size = self._pixmap_size * self._image_model.scale
-        self.setFixedSize(new_size)
+        # self.setFixedSize(new_size)
         self._reposition_buttons()
+        self.repositionHandles()
 
         self.image_state_changed.emit(self._image_name, FloatingImageState.ZOOMED)
+        self.update()
         event.accept()
-
-    #     def keyPressEvent(self, event):
-    #         # Esempio 1: Flag attivo finché il tasto è premuto
-    #         if event.key() == Qt.Key.Key_Shift:
-    #             self.is_selection_mode = True
-    #             print("Modalità selezione ATTIVA")
-    #
-    #         # Esempio 2: Flag "Toggle" (premo S per cambiare stato)
-    #         if event.key() == Qt.Key.Key_S:
-    #             self.is_selection_mode = not self.is_selection_mode
-    #             print(f"Stato flag S: {self.is_selection_mode}")
-    #
-    #         # IMPORTANTE: Passa l'evento alla classe base se vuoi
-    #         # che le altre funzioni di Qt continuino a lavorare
-    #         super().keyPressEvent(event)
-    #
-    #     def keyReleaseEvent(self, event):
-    #         # Ripristiniamo il flag quando il tasto viene rilasciato
-    #         if event.key() == Qt.Key.Key_Shift:
-    #             self.is_selection_mode = False
-    #             print("Modalità selezione DISATTIVATA")
-    #
-    #         super().keyReleaseEvent(event)
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -233,5 +233,81 @@ class FloatingImageWidget(QWidget):
         scaled_pixmap = self._pixmap.scaled(
             new_size, Qt.KeepAspectRatio, Qt.SmoothTransformation
         )
-        painter.drawPixmap(0, 0, scaled_pixmap)
+        # print(f"pixmap offset: {-self._pixmap_offset.x()}, {-self._pixmap_offset.y()}")
+        painter.drawPixmap(
+            -self._pixmap_offset.x(), -self._pixmap_offset.y(), scaled_pixmap
+        )
+
         event.accept()
+
+    def addHandles(self):
+        self._br_rhandle = ResizeHandle(ResizeHandleType.BottomRight, parent=self)
+        self._br_rhandle.view_port_resize.connect(self.resizeViewPort)
+
+        self._bl_rhandle = ResizeHandle(ResizeHandleType.BottomLeft, parent=self)
+        self._bl_rhandle.view_port_resize.connect(self.resizeViewPort)
+
+        self._tr_rhandle = ResizeHandle(ResizeHandleType.TopRight, parent=self)
+        self._tr_rhandle.view_port_resize.connect(self.resizeViewPort)
+
+        self._tl_rhandle = ResizeHandle(ResizeHandleType.TopLeft, parent=self)
+        self._tl_rhandle.view_port_resize.connect(self.resizeViewPort)
+
+        self._bm_rhandle = ResizeHandle(ResizeHandleType.BottomMiddle, parent=self)
+        self._bm_rhandle.view_port_resize.connect(self.resizeViewPort)
+
+        self._tm_rhandle = ResizeHandle(ResizeHandleType.TopMiddle, parent=self)
+        self._tm_rhandle.view_port_resize.connect(self.resizeViewPort)
+
+        self._rm_rhandle = ResizeHandle(ResizeHandleType.RightMiddle, parent=self)
+        self._rm_rhandle.view_port_resize.connect(self.resizeViewPort)
+
+        self._lm_rhandle = ResizeHandle(ResizeHandleType.LeftMiddle, parent=self)
+        self._lm_rhandle.view_port_resize.connect(self.resizeViewPort)
+
+        self.repositionHandles()
+        self.hideHandles()
+
+    def repositionHandles(self):
+        self._br_rhandle.move(self.width(), self.height())
+        self._bl_rhandle.move(0, self.height())
+        self._tr_rhandle.move(self.width(), 0)
+        self._tl_rhandle.move(0, 0)
+        self._bm_rhandle.move(int(self.width() / 2), self.height())
+        self._tm_rhandle.move(int(self.width() / 2), 0)
+        self._rm_rhandle.move(self.width(), int(self.height() / 2))
+        self._lm_rhandle.move(0, int(self.height() / 2))
+
+    def showHandles(self):
+        print("show resize handles")
+        self._br_rhandle.show()
+        self._bl_rhandle.show()
+        self._tr_rhandle.show()
+        self._tl_rhandle.show()
+        self._bm_rhandle.show()
+        self._tm_rhandle.show()
+        self._rm_rhandle.show()
+        self._lm_rhandle.show()
+
+    def hideHandles(self):
+        print("hide resize handles")
+        self._br_rhandle.hide()
+        self._bl_rhandle.hide()
+        self._tr_rhandle.hide()
+        self._tl_rhandle.hide()
+        self._bm_rhandle.hide()
+        self._tm_rhandle.hide()
+        self._rm_rhandle.hide()
+        self._lm_rhandle.hide()
+
+    def resizeViewPort(self, delta_pos: QPoint, delta_size: QSize):
+        print(f"delta_pos: {delta_pos}")
+        self.move(self.pos() + delta_pos)
+        self._pixmap_offset = self._pixmap_offset + delta_pos
+
+        self.setFixedSize(
+            self.size() + delta_size - QSize(delta_pos.x(), delta_pos.y())
+        )
+
+        self._reposition_buttons()
+        self.repositionHandles()

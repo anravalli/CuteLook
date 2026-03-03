@@ -170,6 +170,7 @@ class ReferenceBoard:
                 self.closeImage(img_name)
             case FloatingImageState.SELECTED:
                 # print(f"image selected: {img_name}")
+
                 self.checkSelectedImage(img_name)
             case FloatingImageState.UNSELECTED:
                 # print(f"image deselect: {img_name}")
