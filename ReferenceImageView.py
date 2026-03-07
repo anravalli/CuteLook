@@ -26,12 +26,13 @@ class FloatingImageState(Enum):
     ZLOWERED = 7
     SELECTED = 8
     UNSELECTED = 9
+    UPDATED = 10
 
 
 class FloatingImageWidget(QWidget):
     _pixmap: QPixmap = None
     _pixmap_size: QSize = None
-    _pixmap_offset: QPoint = None
+    # _pixmap_offset: QPoint = None
     _drag_position: QPoint = None
     _image_model: ReferenceImageModel = None
     _image_name: str = ""
@@ -59,10 +60,13 @@ class FloatingImageWidget(QWidget):
         self._image_name = image_name
 
         self._pixmap = QPixmap(image_model.path)
-        self._pixmap_size = self._pixmap.size()
-        self._pixmap_offset = QPoint(0, 0)
+        self._pixmap_size = self._pixmap.size() * self._image_model.scale
+        self._pixmap_offset = QPoint(
+            image_model.pixmap_offset["x"], image_model.pixmap_offset["y"]
+        )
 
-        self.setFixedSize(self._pixmap_size * self._image_model.scale)
+        view_size = QSize(image_model.view_size["w"], image_model.view_size["h"])
+        self.setFixedSize(view_size)
         self.setMinimumSize(0, 0)
         self.setMaximumSize(16777215, 16777215)  # QWIDGETSIZE_MAX
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -96,7 +100,7 @@ class FloatingImageWidget(QWidget):
         self._rise_button.clicked.connect(self.doRaise)
         self._lower_button.clicked.connect(self.doLower)
 
-        self._reposition_buttons()
+        self.repositionButtons()
 
         self.hide_buttons()
 
@@ -111,6 +115,66 @@ class FloatingImageWidget(QWidget):
         self._hide_button.show()
         self._rise_button.show()
         self._lower_button.show()
+
+    def addHandles(self):
+        self._br_rhandle = ResizeHandle(ResizeHandleType.BottomRight, parent=self)
+        self._br_rhandle.view_port_resize.connect(self.resizeViewPort)
+
+        self._bl_rhandle = ResizeHandle(ResizeHandleType.BottomLeft, parent=self)
+        self._bl_rhandle.view_port_resize.connect(self.resizeViewPort)
+
+        self._tr_rhandle = ResizeHandle(ResizeHandleType.TopRight, parent=self)
+        self._tr_rhandle.view_port_resize.connect(self.resizeViewPort)
+
+        self._tl_rhandle = ResizeHandle(ResizeHandleType.TopLeft, parent=self)
+        self._tl_rhandle.view_port_resize.connect(self.resizeViewPort)
+
+        self._bm_rhandle = ResizeHandle(ResizeHandleType.BottomMiddle, parent=self)
+        self._bm_rhandle.view_port_resize.connect(self.resizeViewPort)
+
+        self._tm_rhandle = ResizeHandle(ResizeHandleType.TopMiddle, parent=self)
+        self._tm_rhandle.view_port_resize.connect(self.resizeViewPort)
+
+        self._rm_rhandle = ResizeHandle(ResizeHandleType.RightMiddle, parent=self)
+        self._rm_rhandle.view_port_resize.connect(self.resizeViewPort)
+
+        self._lm_rhandle = ResizeHandle(ResizeHandleType.LeftMiddle, parent=self)
+        self._lm_rhandle.view_port_resize.connect(self.resizeViewPort)
+
+        self.repositionHandles()
+        self.hideHandles()
+
+    def repositionHandles(self):
+        self._br_rhandle.move(self.width(), self.height())
+        self._bl_rhandle.move(0, self.height())
+        self._tr_rhandle.move(self.width(), 0)
+        self._tl_rhandle.move(0, 0)
+        self._bm_rhandle.move(int(self.width() / 2), self.height())
+        self._tm_rhandle.move(int(self.width() / 2), 0)
+        self._rm_rhandle.move(self.width(), int(self.height() / 2))
+        self._lm_rhandle.move(0, int(self.height() / 2))
+
+    def showHandles(self):
+        # print("show resize handles")
+        self._br_rhandle.show()
+        self._bl_rhandle.show()
+        self._tr_rhandle.show()
+        self._tl_rhandle.show()
+        self._bm_rhandle.show()
+        self._tm_rhandle.show()
+        self._rm_rhandle.show()
+        self._lm_rhandle.show()
+
+    def hideHandles(self):
+        # print("hide resize handles")
+        self._br_rhandle.hide()
+        self._bl_rhandle.hide()
+        self._tr_rhandle.hide()
+        self._tl_rhandle.hide()
+        self._bm_rhandle.hide()
+        self._tm_rhandle.hide()
+        self._rm_rhandle.hide()
+        self._lm_rhandle.hide()
 
     def hide(self):
         self.image_state_changed.emit(self._image_name, FloatingImageState.HIDDEN)
@@ -127,7 +191,7 @@ class FloatingImageWidget(QWidget):
         self.image_state_changed.emit(self._image_name, FloatingImageState.ZLOWERED)
         self.updateZetaOrder()  # assuming synchronous execution
 
-    def _reposition_buttons(self):
+    def repositionButtons(self):
         xc = self.width() - self._close_button.width() - 5
         xh = xc - self._hide_button.width() - 5
         xr = 0
@@ -191,14 +255,24 @@ class FloatingImageWidget(QWidget):
                 pos = event.globalPos() - self._drag_position
                 # print(f"pos: {self.pos()}, new pos: {pos}")
                 self.move(pos)
-                self._image_model.view_position = {"x": pos.x(), "y": pos.y()}
             else:
                 drag = event.pos() - self._drag_position
                 self._drag_position = event.pos()
-                print(f"drag: {drag}, _pixmap_offset: {self._pixmap_offset}")
                 self._pixmap_offset = self._pixmap_offset - drag
-                print(f"--- _pixmap_offset: {self._pixmap_offset}")
-                self.update()
+                pixmap_br = self.getPixmapBr()
+                port_br = self.getViewBr()
+
+                if self._pixmap_offset.x() < 0:
+                    self._pixmap_offset.setX(0)
+                if pixmap_br.x() < port_br.x():
+                    self._pixmap_offset.setX((self._pixmap_size - self.size()).width())
+
+                if self._pixmap_offset.y() < 0:
+                    self._pixmap_offset.setY(0)
+                if pixmap_br.y() < port_br.y():
+                    self._pixmap_offset.setY((self._pixmap_size - self.size()).height())
+
+            self.updateModel()
 
             self.image_state_changed.emit(self._image_name, FloatingImageState.MOVED)
             event.accept()
@@ -211,103 +285,104 @@ class FloatingImageWidget(QWidget):
         event.accept()
 
     def wheelEvent(self, event):
-        if event.angleDelta().y() > 0:
-            self._image_model.scale += 0.1
+        modifiers = event.modifiers()
+        new_scale = self._image_model.scale
+        accepted = False
+        focus_pos = event.pos()
+        scale_increment = 0.1
+        if event.angleDelta().y() <= 0:
+            scale_increment = -0.1
+        new_scale += scale_increment
+        if new_scale < 0.1:
+            new_scale = 0.1
+
+        # allways scale selected images
+        if self._selected:
+            accepted = True
+
+        scale_ratio = new_scale / self._image_model.scale
+        # get the focus point displacement after zooming
+        delta_focus = focus_pos * (scale_ratio - 1)
+        # allways scale image including viewport, if "control" is pressed
+        if modifiers == Qt.KeyboardModifier.ControlModifier:
+            delta_focus = QPoint(0, 0)
+            # apply new scale to viewport
+            self.setFixedSize(self.size() * scale_ratio)
+            accepted = True
+
+        # aplly new scale to image content
+        if accepted:
+            self._pixmap_offset *= scale_ratio
+            # correct the image offset to keep visible the area under the mouse while zooming in/out
+            self._pixmap_offset += delta_focus
+            self._pixmap_size = self._pixmap.size() * new_scale
+            self._image_model.scale = new_scale
+            # resize the viewport to avoid leaving blank areas when zooming out
+            # (model update is called by resizeViewPort)
+            self.resizeViewPort(QPoint(0, 0), QSize(0, 0))
+            event.accept()
         else:
-            self._image_model.scale += -0.1
-        if self._image_model.scale < 0.1:
-            self._image_model.scale = 0.1
-
-        new_size = self._pixmap_size * self._image_model.scale
-        # self.setFixedSize(new_size)
-        self._reposition_buttons()
-        self.repositionHandles()
-
-        self.image_state_changed.emit(self._image_name, FloatingImageState.ZOOMED)
-        self.update()
-        event.accept()
+            event.ignore()
 
     def paintEvent(self, event):
         painter = QPainter(self)
-        new_size = self._pixmap_size * self._image_model.scale
+        # new_size = self._pixmap_size * self._image_model.scale
         scaled_pixmap = self._pixmap.scaled(
-            new_size, Qt.KeepAspectRatio, Qt.SmoothTransformation
+            self._pixmap_size, Qt.KeepAspectRatio, Qt.SmoothTransformation
         )
-        # print(f"pixmap offset: {-self._pixmap_offset.x()}, {-self._pixmap_offset.y()}")
+
         painter.drawPixmap(
             -self._pixmap_offset.x(), -self._pixmap_offset.y(), scaled_pixmap
         )
 
         event.accept()
 
-    def addHandles(self):
-        self._br_rhandle = ResizeHandle(ResizeHandleType.BottomRight, parent=self)
-        self._br_rhandle.view_port_resize.connect(self.resizeViewPort)
-
-        self._bl_rhandle = ResizeHandle(ResizeHandleType.BottomLeft, parent=self)
-        self._bl_rhandle.view_port_resize.connect(self.resizeViewPort)
-
-        self._tr_rhandle = ResizeHandle(ResizeHandleType.TopRight, parent=self)
-        self._tr_rhandle.view_port_resize.connect(self.resizeViewPort)
-
-        self._tl_rhandle = ResizeHandle(ResizeHandleType.TopLeft, parent=self)
-        self._tl_rhandle.view_port_resize.connect(self.resizeViewPort)
-
-        self._bm_rhandle = ResizeHandle(ResizeHandleType.BottomMiddle, parent=self)
-        self._bm_rhandle.view_port_resize.connect(self.resizeViewPort)
-
-        self._tm_rhandle = ResizeHandle(ResizeHandleType.TopMiddle, parent=self)
-        self._tm_rhandle.view_port_resize.connect(self.resizeViewPort)
-
-        self._rm_rhandle = ResizeHandle(ResizeHandleType.RightMiddle, parent=self)
-        self._rm_rhandle.view_port_resize.connect(self.resizeViewPort)
-
-        self._lm_rhandle = ResizeHandle(ResizeHandleType.LeftMiddle, parent=self)
-        self._lm_rhandle.view_port_resize.connect(self.resizeViewPort)
-
-        self.repositionHandles()
-        self.hideHandles()
-
-    def repositionHandles(self):
-        self._br_rhandle.move(self.width(), self.height())
-        self._bl_rhandle.move(0, self.height())
-        self._tr_rhandle.move(self.width(), 0)
-        self._tl_rhandle.move(0, 0)
-        self._bm_rhandle.move(int(self.width() / 2), self.height())
-        self._tm_rhandle.move(int(self.width() / 2), 0)
-        self._rm_rhandle.move(self.width(), int(self.height() / 2))
-        self._lm_rhandle.move(0, int(self.height() / 2))
-
-    def showHandles(self):
-        print("show resize handles")
-        self._br_rhandle.show()
-        self._bl_rhandle.show()
-        self._tr_rhandle.show()
-        self._tl_rhandle.show()
-        self._bm_rhandle.show()
-        self._tm_rhandle.show()
-        self._rm_rhandle.show()
-        self._lm_rhandle.show()
-
-    def hideHandles(self):
-        print("hide resize handles")
-        self._br_rhandle.hide()
-        self._bl_rhandle.hide()
-        self._tr_rhandle.hide()
-        self._tl_rhandle.hide()
-        self._bm_rhandle.hide()
-        self._tm_rhandle.hide()
-        self._rm_rhandle.hide()
-        self._lm_rhandle.hide()
-
     def resizeViewPort(self, delta_pos: QPoint, delta_size: QSize):
-        print(f"delta_pos: {delta_pos}")
-        self.move(self.pos() + delta_pos)
-        self._pixmap_offset = self._pixmap_offset + delta_pos
+        # print(f"delta_pos: {delta_pos}")
 
-        self.setFixedSize(
-            self.size() + delta_size - QSize(delta_pos.x(), delta_pos.y())
-        )
+        tmp_offset = self._pixmap_offset + delta_pos
+        if tmp_offset.x() < 0:
+            delta_pos.setX(-self._pixmap_offset.x())
+            tmp_offset.setX(0)
+        if tmp_offset.y() < 0:
+            delta_pos.setY(-self._pixmap_offset.y())
+            tmp_offset.setY(0)
 
-        self._reposition_buttons()
+        self._pixmap_offset = tmp_offset
+
+        new_pos = self.pos() + delta_pos
+        self.move(new_pos)
+
+        new_size = self.size() + delta_size - QSize(delta_pos.x(), delta_pos.y())
+        pixmap_br = self.getPixmapBr()
+        if pixmap_br.x() < new_size.width():
+            new_size.setWidth(pixmap_br.x())
+        if pixmap_br.y() < new_size.height():
+            new_size.setHeight(pixmap_br.y())
+
+        self.setFixedSize(new_size)
+        self.updateModel()
+
+    def updateModel(self):
+        pos = self.pos()
+        self._image_model.view_position = {"x": pos.x(), "y": pos.y()}
+        size = self.size()
+        self._image_model.view_size = {"w": size.width(), "h": size.height()}
+        self._image_model.pixmap_offset = {
+            "x": self._pixmap_offset.x(),
+            "y": self._pixmap_offset.y(),
+        }
+        self.image_state_changed.emit(self._image_name, FloatingImageState.UPDATED)
+        self.repositionButtons()
         self.repositionHandles()
+        self.update()
+
+    def getPixmapBr(self) -> QPoint:
+        return sizeToPoint(self._pixmap_size) - self._pixmap_offset
+
+    def getViewBr(self) -> QPoint:
+        return sizeToPoint(self.size())
+
+
+def sizeToPoint(s: QSize) -> QPoint:
+    return QPoint(s.width(), s.height())

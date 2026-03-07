@@ -44,3 +44,10 @@ A formal project - with tickets, kanban and all the bells and whistles - has not
 <br/>
 
 To support future developments and anybody who whould eventually use this project to learn coding and software design - beware that this application isn't meant to be a software design reference and I consider to take any possible shortcut in the implementation -, the application architecture is documented in [Architecture.md](./docs/Architecture.md).
+
+# Notes on AI and generative tools
+<br/>
+Although 90% of the actual code has been written directly by hand (in the old fashined way :-)), AI generated code has been used the build the intial application prototype (it was about a the board with some floating images). That codes has been vastly rewriten and olny a few lines are still there but you can steel see it on the initial commits.
+
+AI has been also used as support to quickly grasp libraries API usage and overcome my Python knowledge gap (this is my first more-than-a-script Python project).
+

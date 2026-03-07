@@ -1,6 +1,8 @@
 # Architecture
 <br/>
 
+_**WARNING: this is a stub, not actual architecture!**_
+
 ```plantuml
 @startuml
 	CuteLook <|-- Qt5.QObject

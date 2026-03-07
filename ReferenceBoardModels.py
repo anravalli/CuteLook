@@ -7,7 +7,7 @@ class ReferenceImageModel(BaseModel):
     path: str = ""
     z_order: int = 0
     scale: float = 1.0
-    image_center: dict[str, int] = {"x": 256, "y": 256}
+    pixmap_offset: dict[str, int] = {"x": 0, "y": 0}
     view_size: dict[str, int] = {"w": 512, "h": 512}
     view_position: dict[str, int] = {"x": 50, "y": 50}
     view_hidden: bool = False
