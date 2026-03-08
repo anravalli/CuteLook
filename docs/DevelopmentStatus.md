@@ -20,7 +20,7 @@ Status:
 - [x] when selected, images are temporary moved to foregraund 
 - [x] images Z-order can be changed using the designed controll buttons 
 - [x] images Z-order shall be saved into board file and restored on load
-- [ ] enter "edit mode"/"image selection" with double click
+- [x] enter "edit mode"/"image selection" with double click
 - [x] all control buttons and resize handles shall be visible when in edit mode
 - [x] mouse wheel rotation over an image while in edit mode scale only the content
 - [x] mouse wheel rotation over an image while pressing "control" in board mode, scales the whole image window

@@ -224,6 +224,16 @@ class FloatingImageWidget(QWidget):
         self.hideHandles()
         self.updateZetaOrder()
 
+    def mouseDoubleClickEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.image_state_changed.emit(self._image_name, FloatingImageState.SELECTED)
+            proxy = self.graphicsProxyWidget()
+            if proxy:
+                proxy.setZValue(self._max_z)
+            self._selected = True
+            self.showHandles()
+        super().mouseDoubleClickEvent(event)
+
     def mousePressEvent(self, event):
         modifiers = event.modifiers()
         if event.button() == Qt.LeftButton:
@@ -232,15 +242,15 @@ class FloatingImageWidget(QWidget):
             else:
                 self._drag_position = event.pos()
             if modifiers == Qt.KeyboardModifier.ControlModifier:
-                # print("Click effettuato mentre CTRL era premuto")
-                self.image_state_changed.emit(
-                    self._image_name, FloatingImageState.SELECTED
-                )
-                proxy = self.graphicsProxyWidget()
-                if proxy:
-                    proxy.setZValue(self._max_z)
-                self._selected = True
-                self.showHandles()
+                # self.image_state_changed.emit(
+                #     self._image_name, FloatingImageState.SELECTED
+                # )
+                # proxy = self.graphicsProxyWidget()
+                # if proxy:
+                #     proxy.setZValue(self._max_z)
+                # self._selected = True
+                # self.showHandles()
+                pass
             else:
                 self.image_state_changed.emit(
                     self._image_name, FloatingImageState.UNSELECTED
