@@ -235,23 +235,17 @@ class FloatingImageWidget(QWidget):
         super().mouseDoubleClickEvent(event)
 
     def mousePressEvent(self, event):
+        # print(f"{self._image_name}: mousePressEvent")
         modifiers = event.modifiers()
         if event.button() == Qt.LeftButton:
-            if not self._selected:
+            if not self._selected or modifiers == Qt.KeyboardModifier.ControlModifier:
+                # print(f"{self._image_name}: prepare move")
                 self._drag_position = event.globalPos() - self.frameGeometry().topLeft()
             else:
+                # print(f"{self._image_name}: start drag")
                 self._drag_position = event.pos()
-            if modifiers == Qt.KeyboardModifier.ControlModifier:
-                # self.image_state_changed.emit(
-                #     self._image_name, FloatingImageState.SELECTED
-                # )
-                # proxy = self.graphicsProxyWidget()
-                # if proxy:
-                #     proxy.setZValue(self._max_z)
-                # self._selected = True
-                # self.showHandles()
-                pass
-            else:
+            if not self._selected:
+                # print(f"{self._image_name}: send unselect")
                 self.image_state_changed.emit(
                     self._image_name, FloatingImageState.UNSELECTED
                 )
@@ -260,12 +254,16 @@ class FloatingImageWidget(QWidget):
             event.ignore()
 
     def mouseMoveEvent(self, event):
+        modifiers = event.modifiers()
+        # print(f"{self._image_name}: mouseMoveEvent")
         if event.buttons() == Qt.LeftButton:
-            if not self._selected:
+            if not self._selected or modifiers == Qt.KeyboardModifier.ControlModifier:
+                # print(f"{self._image_name}: move image")
                 pos = event.globalPos() - self._drag_position
                 # print(f"pos: {self.pos()}, new pos: {pos}")
                 self.move(pos)
             else:
+                # print(f"{self._image_name}: drag image")
                 drag = event.pos() - self._drag_position
                 self._drag_position = event.pos()
                 self._pixmap_offset = self._pixmap_offset - drag

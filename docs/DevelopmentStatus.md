@@ -24,8 +24,8 @@ Status:
 - [x] all control buttons and resize handles shall be visible when in edit mode
 - [x] mouse wheel rotation over an image while in edit mode scale only the content
 - [x] mouse wheel rotation over an image while pressing "control" in board mode, scales the whole image window
-- [ ] mouse wheel rotation over the board or image while in board mode, zoom in/out the whole board
-- [ ] pressing mouse middle over the board or image while in board mode pan the the whole board
+- [x] mouse wheel rotation over the board or image while in board mode, zoom in/out the whole board
+- [x] pressing mouse middle over the board or image while in board mode pan the the whole board
 - [ ] store board view zoom and center to file and restore it on load
 - [x] dragging the maouse while in edit mode shall pan image (content)
 - [x] dragging the resize handles will change size/shape of the image view port whitout affecting the content

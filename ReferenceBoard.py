@@ -229,6 +229,7 @@ class ReferenceBoard:
             self._selected_images.clear()
             if selected:
                 self._selected_images.append(img_name)
+                self._board_window._board_area.ignoreEvents(True)
 
     def deselectAllImages(self) -> None:
         self._board_window.deselectImages(self._selected_images)

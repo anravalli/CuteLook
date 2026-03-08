@@ -1,3 +1,4 @@
+from __future__ import annotations
 import typing
 import pathlib
 from PyQt5.QtWidgets import (
@@ -11,10 +12,10 @@ from PyQt5.QtWidgets import (
     QGraphicsScene,
 )
 from PyQt5.QtGui import QCloseEvent, QIcon, QCursor
-from PyQt5.QtCore import Qt, QSize, QPoint, pyqtSignal
+from PyQt5.QtCore import Qt, QSize, QPoint, QPointF, pyqtSignal
 
 from ReferenceImageView import FloatingImageWidget
-from CustomWidgets import FloatingLineEdit
+from CustomWidgets import FloatingLineEdit, SelectionBox
 
 # from ReferenceBoard import *
 from ReferenceBoardModels import ReferenceImageModel
@@ -35,7 +36,7 @@ class ReferenceBoardView(QMainWindow):
     _board_actions: dict[str, ReferenceBoardAction] = None
 
     board_id: int = 0
-    _board_area: QGraphicsView = None
+    _board_area: BoardGraphicView = None
     _board_scene: QGraphicsScene = None
     _context_menu_pos: QPoint = None
     _toolbar: QToolBar = None
@@ -58,7 +59,7 @@ class ReferenceBoardView(QMainWindow):
         # self.setGeometry(100, 100, 800, 600)
 
         self._board_scene = QGraphicsScene()
-        self._board_area = QGraphicsView(self._board_scene)
+        self._board_area = BoardGraphicView(self._board_scene)
         self._board_area.setStyleSheet("background-color: #232323;")
 
         self.setCentralWidget(self._board_area)
@@ -332,6 +333,7 @@ class ReferenceBoardView(QMainWindow):
 
     def mousePressEvent(self, event):
         self.deselect_images.emit()
+        self._board_area.ignoreEvents(False)
         super().mousePressEvent(event)
 
     def deselectImages(self, images: list[str] = []) -> None:
@@ -343,11 +345,83 @@ class ReferenceBoardView(QMainWindow):
     def setImageZvalue(self, img_name: str, z_order: int) -> None:
         self._opened_images[img_name].setZValue(z_order)
 
-    def setSelectionBox(image_name: str, visible: bool = True):
+    def setSelectionBox(self, image_name: str, visible: bool = True):
         # selection box
-        self.box = SelectionBox(new_size, 2, parent=self)
+        image = self._opened_images[image_name]
+        self.box = SelectionBox(image.size(), 2, parent=self)
         self.box.move(self.pos())
         self.box.show()
+
+
+class BoardGraphicView(QGraphicsView):
+    _scale: float = 1
+    _pan_start: QPoint
+    _ignore_mouse_event: bool = False
+
+    def __init__(self, scene, parent=None):
+        super().__init__(scene, parent)
+        # self.setTransformationAnchor(QGraphicsView.NoAnchor)
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MiddleButton:
+            self.setCursor(Qt.ClosedHandCursor)
+            self._pan_start_pos = event.pos()
+            event.accept()
+        else:
+            super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+
+        if event.buttons() & Qt.MiddleButton:
+            drag = event.pos() - self._pan_start_pos
+            self._pan_start_pos = event.pos()
+
+            h_bar = self.horizontalScrollBar()
+            v_bar = self.verticalScrollBar()
+            h_bar.setValue(h_bar.value() - drag.x())
+            v_bar.setValue(v_bar.value() - drag.y())
+
+            # teoretically translate should change the view coordinate system
+            # acting independently from scrollbar (they don't need to be visible
+            # and in any case are left unchanged) but, empirically, it seem to
+            # work exacltly he same way
+            # self.translate(drag.x(), drag.y())
+
+            event.accept()
+        else:
+            # print("no mid")
+            super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.MiddleButton:
+            self._pan_start_pos = QPoint()
+            self.setCursor(Qt.ArrowCursor)
+            event.accept()
+        else:
+            super().mouseReleaseEvent(event)
+
+    def wheelEvent(self, event):
+        if (
+            self._ignore_mouse_event
+            or event.modifiers() == Qt.KeyboardModifier.ControlModifier
+        ):
+            super().wheelEvent(event)
+        else:
+            new_scale = self._scale
+            scale_increment = 0.9
+            if event.angleDelta().y() > 0:
+                scale_increment = 1.1
+            # new_scale += scale_increment
+            if new_scale > 0.1:
+                new_scale = 0.1
+            self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
+            self.scale(scale_increment, scale_increment)
+
+            self._scale = new_scale
+            self.setTransformationAnchor(QGraphicsView.NoAnchor)
+
+    def ignoreEvents(self, ignore: bool = True) -> None:
+        self._ignore_mouse_event = ignore
 
 
 if __name__ == "__main__":
