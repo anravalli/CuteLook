@@ -34,7 +34,6 @@ class ResizeHandle(QWidget):
     _y_to_pos: bool = True
 
     view_port_resize: typing.ClassVar[pyqtSignal] = pyqtSignal(QPoint, QSize)
-    content_resize: typing.ClassVar[pyqtSignal] = pyqtSignal(QPoint, QSize)
 
     def __init__(
         self,
@@ -96,7 +95,7 @@ class ResizeHandle(QWidget):
 
         self._type = handle_type
 
-    def setColor(color_str: str) -> None:
+    def setColor(self, color_str: str) -> None:
         self._color = QColor(color_str)
 
     def paintEvent(self, event):
@@ -122,7 +121,6 @@ class ResizeHandle(QWidget):
             event.ignore()
 
     def mouseMoveEvent(self, event):
-        modifiers = event.modifiers()
         if event.buttons() == Qt.LeftButton:
             # resize view port
             drag_amount = event.pos() - self._drag_position
@@ -143,9 +141,7 @@ class ResizeHandle(QWidget):
 
             # self.move(pos)
             self.view_port_resize.emit(delta_pos, delta_size)
-            if modifiers == Qt.KeyboardModifier.ControlModifier:
-                # also scale content
-                self.content_resize.emit(drag_amount)
+
             event.accept()
 
     def mouseReleaseEvent(self, event):
