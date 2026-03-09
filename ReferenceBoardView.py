@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import (
     QGraphicsView,
     QGraphicsScene,
 )
-from PyQt5.QtGui import QCloseEvent, QIcon, QCursor
+from PyQt5.QtGui import QCloseEvent, QIcon, QCursor, QGuiApplication
 from PyQt5.QtCore import Qt, QSize, QPoint, QPointF, pyqtSignal
 
 from ReferenceImageView import FloatingImageWidget
@@ -360,18 +360,21 @@ class BoardGraphicView(QGraphicsView):
 
     def __init__(self, scene, parent=None):
         super().__init__(scene, parent)
+
+        # self.setCursor(Qt.ClosedHandCursor)
         # self.setTransformationAnchor(QGraphicsView.NoAnchor)
 
     def mousePressEvent(self, event):
+        print("mousePressEvent")
+        self.unsetCursor()
         if event.button() == Qt.MiddleButton:
-            self.setCursor(Qt.ClosedHandCursor)
+            QGuiApplication.setOverrideCursor(Qt.CursorShape.ClosedHandCursor)
             self._pan_start_pos = event.pos()
             event.accept()
         else:
             super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
-
         if event.buttons() & Qt.MiddleButton:
             drag = event.pos() - self._pan_start_pos
             self._pan_start_pos = event.pos()
@@ -394,8 +397,8 @@ class BoardGraphicView(QGraphicsView):
 
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.MiddleButton:
+            QGuiApplication.restoreOverrideCursor()
             self._pan_start_pos = QPoint()
-            self.setCursor(Qt.ArrowCursor)
             event.accept()
         else:
             super().mouseReleaseEvent(event)
