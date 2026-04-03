@@ -360,7 +360,6 @@ class BoardGraphicView(QGraphicsView):
 
     def __init__(self, scene, parent=None):
         super().__init__(scene, parent)
-
         # self.setCursor(Qt.ClosedHandCursor)
         # self.setTransformationAnchor(QGraphicsView.NoAnchor)
 
@@ -377,23 +376,36 @@ class BoardGraphicView(QGraphicsView):
     def mouseMoveEvent(self, event):
         if event.buttons() & Qt.MiddleButton:
             drag = event.pos() - self._pan_start_pos
-            self._pan_start_pos = event.pos()
-
             h_bar = self.horizontalScrollBar()
             v_bar = self.verticalScrollBar()
-            h_bar.setValue(h_bar.value() - drag.x())
-            v_bar.setValue(v_bar.value() - drag.y())
+            has_scrollable_range = (
+                h_bar.minimum() != h_bar.maximum() or v_bar.minimum() != v_bar.maximum()
+            )
 
-            # teoretically translate should change the view coordinate system
-            # acting independently from scrollbar (they don't need to be visible
-            # and in any case are left unchanged) but, empirically, it seem to
-            # work exacltly he same way
-            # self.translate(drag.x(), drag.y())
+            if has_scrollable_range:
+                h_bar.setValue(h_bar.value() - drag.x())
+                v_bar.setValue(v_bar.value() - drag.y())
+            else:
+                self._panWithoutScrollbars(drag)
+
+            self._pan_start_pos = event.pos()
 
             event.accept()
         else:
             # print("no mid")
             super().mouseMoveEvent(event)
+
+    def _panWithoutScrollbars(self, drag: QPoint) -> None:
+        drag_scene = self.mapToScene(self._pan_start_pos) - self.mapToScene(
+            self._pan_start_pos + drag
+        )
+        visible_scene_rect = self.mapToScene(self.viewport().rect()).boundingRect()
+        moved_visible_rect = visible_scene_rect.translated(drag_scene)
+        scene_rect = self.sceneRect()
+        if not scene_rect.contains(moved_visible_rect):
+            self.setSceneRect(scene_rect.united(moved_visible_rect).adjusted(-10, -10, 10, 10))
+        new_center = visible_scene_rect.center() + drag_scene
+        self.centerOn(new_center)
 
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.MiddleButton:
