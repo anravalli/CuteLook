@@ -357,12 +357,19 @@ class BoardGraphicView(QGraphicsView):
     _scale: float = 1
     _pan_start: QPoint
     _ignore_mouse_event: bool = False
+    _virtual_scene_half_size: int = 50000
 
     def __init__(self, scene, parent=None):
         super().__init__(scene, parent)
+        self._ensurePannableSceneRect()
 
         # self.setCursor(Qt.ClosedHandCursor)
         # self.setTransformationAnchor(QGraphicsView.NoAnchor)
+
+    def _ensurePannableSceneRect(self) -> None:
+        """Keep a large scene rect so middle-mouse panning is never clamped."""
+        half_size = self._virtual_scene_half_size
+        self.setSceneRect(-half_size, -half_size, half_size * 2, half_size * 2)
 
     def mousePressEvent(self, event):
         print("mousePressEvent")
