@@ -26,13 +26,20 @@ Status:
 - [x] mouse wheel rotation over an image while pressing "control" in board mode, scales the whole image window
 - [x] mouse wheel rotation over the board or image while in board mode, zoom in/out the whole board
 - [x] pressing mouse middle over the board or image while in board mode pan the the whole board
-- [ ] store board view zoom and center to file and restore it on load
 - [x] dragging the maouse while in edit mode shall pan image (content)
 - [x] dragging the resize handles will change size/shape of the image view port whitout affecting the content
 - [x] the image view port shall never show empty spaces
 - [x] store current panning and view port size into model, board file, and restore on load
 - [x] board window position, size and state shall be stored into board file and restored on load
-- [ ] add "fit to window" state for the board
+
+### Version 0.9.1
+Goals: refinement over 0.9 with some optional features.
+
+Status:
+- [ ] store board view zoom and center to file and restore it on load
+- [ ] add "fit to window" and "1:1" buttons to board toolbar
+- [ ] add a proper build/packging infrastructure to ease app distribution
+
 
 ### Version 1.0
 Goals: UI and UX improvement
@@ -45,7 +52,6 @@ Goals: UI and UX improvement
 - [ ] redesign the resize handles
 - [ ] implement a "recently opened boards" list and make it available through the file menu
 - [ ] poster tool: generate a variable resolution image of the board (all the images stiched together)
-- [ ] add a proper build/packging infrastructure to ease app distribution
 - [ ] add native Windows support add 
 
 ### Future Releases (2.0)

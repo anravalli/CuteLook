@@ -11,8 +11,15 @@ from PyQt5.QtWidgets import (
     QGraphicsView,
     QGraphicsScene,
 )
-from PyQt5.QtGui import QCloseEvent, QIcon, QCursor, QGuiApplication
-from PyQt5.QtCore import Qt, QSize, QPoint, QPointF, pyqtSignal
+from PyQt5.QtGui import (
+    QCloseEvent,
+    QIcon,
+    QCursor,
+    QGuiApplication,
+    QTransform,
+    QPainter,
+)
+from PyQt5.QtCore import Qt, QSize, QPoint, QRect, pyqtSignal
 
 from ReferenceImageView import FloatingImageWidget
 from CustomWidgets import FloatingLineEdit, SelectionBox
@@ -360,9 +367,9 @@ class BoardGraphicView(QGraphicsView):
 
     def __init__(self, scene, parent=None):
         super().__init__(scene, parent)
-
+        self.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+        self.setRenderHint(QPainter.RenderHint.HighQualityAntialiasing)
         # self.setCursor(Qt.ClosedHandCursor)
-        # self.setTransformationAnchor(QGraphicsView.NoAnchor)
 
     def mousePressEvent(self, event):
         print("mousePressEvent")
@@ -371,29 +378,33 @@ class BoardGraphicView(QGraphicsView):
             QGuiApplication.setOverrideCursor(Qt.CursorShape.ClosedHandCursor)
             self._pan_start_pos = event.pos()
             event.accept()
+            print(f"++ initial scene rect: {self.sceneRect()}")
         else:
             super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
         if event.buttons() & Qt.MiddleButton:
             drag = event.pos() - self._pan_start_pos
+            self._panWithoutScrollbars(drag)
             self._pan_start_pos = event.pos()
-
-            h_bar = self.horizontalScrollBar()
-            v_bar = self.verticalScrollBar()
-            h_bar.setValue(h_bar.value() - drag.x())
-            v_bar.setValue(v_bar.value() - drag.y())
-
-            # teoretically translate should change the view coordinate system
-            # acting independently from scrollbar (they don't need to be visible
-            # and in any case are left unchanged) but, empirically, it seem to
-            # work exacltly he same way
-            # self.translate(drag.x(), drag.y())
-
             event.accept()
         else:
             # print("no mid")
             super().mouseMoveEvent(event)
+
+    def _panWithoutScrollbars(self, drag: QPoint) -> None:
+        drag_scene = self.mapToScene(self._pan_start_pos) - self.mapToScene(
+            self._pan_start_pos + drag
+        )
+        visible_scene_rect = self.mapToScene(self.viewport().rect()).boundingRect()
+        moved_visible_rect = visible_scene_rect.translated(drag_scene)
+        scene_rect = self.sceneRect()
+        if not scene_rect.contains(moved_visible_rect):
+            self.setSceneRect(
+                scene_rect.united(moved_visible_rect).adjusted(-10, -10, 10, 10)
+            )
+        new_center = visible_scene_rect.center() + drag_scene
+        self.centerOn(new_center)
 
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.MiddleButton:
@@ -404,6 +415,8 @@ class BoardGraphicView(QGraphicsView):
             super().mouseReleaseEvent(event)
 
     def wheelEvent(self, event):
+        min_scale = 0.3
+        max_scale = 5.0
         if (
             self._ignore_mouse_event
             or event.modifiers() == Qt.KeyboardModifier.ControlModifier
@@ -411,20 +424,35 @@ class BoardGraphicView(QGraphicsView):
             super().wheelEvent(event)
         else:
             new_scale = self._scale
+            print(f"old scale: {new_scale}")
             scale_increment = 0.9
             if event.angleDelta().y() > 0:
                 scale_increment = 1.1
-            # new_scale += scale_increment
-            if new_scale > 0.1:
-                new_scale = 0.1
+            new_scale *= scale_increment
+            if new_scale < min_scale:
+                new_scale = min_scale
+            elif new_scale > max_scale:
+                new_scale = max_scale
+
+            print(f"new scale: {new_scale}")
             self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
-            self.scale(scale_increment, scale_increment)
+            transform = QTransform()
+            transform.scale(new_scale, new_scale)
+            self.setTransform(transform)
 
             self._scale = new_scale
             self.setTransformationAnchor(QGraphicsView.NoAnchor)
 
     def ignoreEvents(self, ignore: bool = True) -> None:
         self._ignore_mouse_event = ignore
+
+
+def _debug_Point(p: QPoint) -> str:
+    return f"{p.x()},{p.y()}"
+
+
+def _debug_Rect(r: QRect) -> str:
+    return f"pos: {r.x()},{r.y()}; size: {r.width()}x{r.height()}"
 
 
 if __name__ == "__main__":
