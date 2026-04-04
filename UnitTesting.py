@@ -41,7 +41,7 @@ def RunTest(test_list: list[any]) -> tuple[int, int]:
         try:
             test()
             passed += 1
-        except TestFailedException as e:
+        except TestFailedException:
             failed += 1
     print(f"{passed}/{total} tests passed")
     print(f"{failed} tests failed")

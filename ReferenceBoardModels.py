@@ -1,18 +1,15 @@
-import json
-import pathlib
-
 from pydantic import BaseModel, ValidationError
-from UnitTesting import *
+from UnitTesting import RunTest, TestFunction, TestFailedException
 
 
 # Reference Image model
 class ReferenceImageModel(BaseModel):
     path: str = ""
-    z_order: int = -1
-    zoom: float = 1
-    image_center: dict[str, float] = {"x": 256, "y": 256}
-    view_size: dict[str, float] = {"w": 512, "h": 512}
-    view_position: dict[str, float] = {"w": 0, "h": 0}
+    z_order: int = 0
+    scale: float = 1.0
+    pixmap_offset: dict[str, int] = {"x": 0, "y": 0}
+    view_size: dict[str, int] = {"w": 512, "h": 512}
+    view_position: dict[str, int] = {"x": 50, "y": 50}
     view_hidden: bool = False
 
 
@@ -26,10 +23,10 @@ class ReferenceBoardModel(BaseModel):
 Unit Tests
 """
 test_data = {
-    "json_refimage_1": '{"path": "./pippo.png", "zoom": "2"}',
-    "json_refimage_2": '{"path": "./pluto.png", "zoom": "1", "image_center": {"x": 256.0, "y": 256.0}, "view_size": {"w": 512.0, "h": 512.0} }',
+    "json_refimage_1": '{"path": "./pippo.png", "scale": "2"}',
+    "json_refimage_2": '{"path": "./pluto.png", "scale": "1", "image_center": {"x": 256, "y": 256}, "view_size": {"w": 512, "h": 512} }',
     "json_refimage_bad": '{"id": "123", "nome": "Alice"}',
-    "json_refimage_full": '{"path":"./pippo.png","z_order":-1,"zoom":2.0,"image_center":{"x":256.0,"y":256.0},"view_size":{"w":512.0,"h":512.0},"view_position":{"w":0.0,"h":0.0},"view_hidden":false}',
+    "json_refimage_full": '{"path":"./pippo.png","z_order":-1,"scale":2.0,"image_center":{"x":256,"y":256},"view_size":{"w":512,"h":512},"view_position":{"x":0,"y":0},"view_hidden":false}',
 }
 
 
@@ -37,7 +34,7 @@ test_data = {
 def refImage_from_json_ok():
     try:
         json_ref = test_data["json_refimage_1"]
-        img = ReferenceImageModel.model_validate_json(json_ref)
+        ReferenceImageModel.model_validate_json(json_ref)
         # print(f"img {img}")
     except ValidationError as e:
         print(f"Test Failed: {e}")
@@ -54,7 +51,7 @@ def refImage_from_json_ok():
 def refImage_from_json2_ok():
     try:
         json_ref = test_data["json_refimage_2"]
-        img = ReferenceImageModel.model_validate_json(json_ref)
+        ReferenceImageModel.model_validate_json(json_ref)
     except ValidationError as e:
         print(f"Test Failed: {e}")
         raise TestFailedException()
@@ -70,7 +67,7 @@ def refImage_from_json2_ok():
 def refImage_from_json_failed():
     try:
         json_ref = json_ref = test_data["json_refimage_bad"]
-        img_2 = ReferenceImageModel.model_validate_json(json_ref)
+        ReferenceImageModel.model_validate_json(json_ref)
         # print(f"img_2 {img_2}")
     except TypeError as e:
         print(f"-- ERROR: {e}")

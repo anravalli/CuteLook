@@ -1,25 +1,10 @@
-import sys
-import typing
 from PyQt5.QtWidgets import (
-    QApplication,
-    QMainWindow,
-    QLabel,
     QVBoxLayout,
-    QHBoxLayout,
     QWidget,
-    QPushButton,
-    QFileDialog,
-    QMessageBox,
-    QAction,
-    QToolBar,
-    QStyle,
-    QMenu,
-    QDialog,
     QLineEdit,
 )
-from PyQt5.QtGui import QPixmap, QCloseEvent, QIcon
-from PyQt5.QtCore import Qt, QPoint, pyqtSignal
-from UnitTesting import *
+from PyQt5.QtGui import QIcon, QColor
+from PyQt5.QtCore import Qt, QPoint
 
 
 class FloatingInputDialog(QLineEdit):
@@ -36,7 +21,7 @@ class FloatingInputDialog(QLineEdit):
     ) -> None:
         super().__init__(parent)
         self.setWindowTitle(title)
-        self.setGeometry(pos, whidth, height)
+        self.setGeometry(pos, width, height)
 
         layout = QVBoxLayout(self)
 
@@ -52,7 +37,7 @@ class FloatingInputDialog(QLineEdit):
 
     def accept_input(self):
         self.text_input = self.line_edit.text()
-        self.setPlaceholderText(label)
+        self.setPlaceholderText(self.label)
         self.accept()
 
     def get_text(self):
@@ -69,7 +54,7 @@ class FloatingLineEdit(QLineEdit):
         parent: QWidget = None,
     ) -> None:
         super().__init__(parent)
-        self.setGeometry(pos.x(), pos.y(), width, height)
+        self.setGeometry(pos.x(), round(pos.y() - height / 2), width, height)
         self.setPlaceholderText(label)
         self.setFocus()
         self.show()
@@ -84,9 +69,6 @@ class FloatingLineEdit(QLineEdit):
         else:
             super().keyPressEvent(event)
 
-
-if __name__ == "__main__":
-    test_list = []
-
-    p, f = RunTest(test_list)
-    exit(f)
+    def focusOutEvent(self, event):
+        self.close()
+        super().focusOutEvent(event)
