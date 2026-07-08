@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cutelook"
+version = "0.9.0"
+description = "A PyQt5 reference board application for artists."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+dependencies = [
+    "PyQt5",
+    "pydantic",
+    "platformdirs",
+]
+
+[project.optional-dependencies]
+dist = [
+    "build>=1",
+    "pyinstaller>=6",
+]
+
+[tool.setuptools]
+py-modules = [
+    "CuteLook",
+    "CuteLookConfig",
+    "ReferenceBoard",
+    "ReferenceBoardModels",
+    "ReferenceBoardView",
+    "ReferenceImageView",
+    "UnitTesting",
+]
+packages = ["CustomWidgets"]
+
+[tool.cutelook.pyinstaller]
+entry-point = "CuteLook.py"
+data = [
+    "icons:icons",
+    "docs/demo.png:docs",
+]
+hidden-imports = [
+    "PyQt5.sip",
+    "PyQt5.QtSvg",
+    "pydantic_core._pydantic_core",
+]
