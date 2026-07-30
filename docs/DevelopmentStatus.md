@@ -38,19 +38,19 @@ Goals: refinement over 0.9 with some optional features.
 Status:
 - [ ] store board view zoom and center to file and restore it on load
 - [ ] add "fit to window" and "1:1" buttons to board toolbar
-- [ ] add a proper build/packging infrastructure to ease app distribution
-
+- [x] newly added images shall be fully visible independently of their size
+- [x] add a proper build/packging infrastructure to ease app distribution
+- [ ] image contour should be highlighted and drown in foreground on mouse over
+- [ ] image name shall be displayed at the bottom of the board view (in foregraound) on mouse over
+- [ ] implement a "recently opened boards" list and make it available through the file menu
 
 ### Version 1.0
 Goals: UI and UX improvement
 - [ ] prepare an UI mockup
-- [ ] colored selection box around the selected image
 - [ ] move control buttons to a dedicated custom toolbar above the image window
 - [ ] add a "grip" handle to control toolbar to move the image window while in edit mode 
-- [ ] selection box and control toolbar shall be allways visible in forground, on to of any image
 - [ ] change mouse shape according to the current action (dragging, resizing, etc.)
 - [ ] redesign the resize handles
-- [ ] implement a "recently opened boards" list and make it available through the file menu
 - [ ] poster tool: generate a variable resolution image of the board (all the images stiched together)
 - [ ] add native Windows support add 
 

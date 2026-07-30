@@ -297,10 +297,23 @@ class ReferenceBoardView(QMainWindow):
                 path = pathlib.Path(file_path)
                 self.add_image.emit(path)
 
-    def addImage(
+    def addStoredImage(
         self, image_name: str, image_model: ReferenceImageModel
     ) -> FloatingImageWidget:
-        floating_image = FloatingImageWidget(image_name, image_model, parent=None)
+        return self.inner_addImage(image_name, image_model)
+
+    def addNewImage(
+        self, image_name: str, image_model: ReferenceImageModel
+    ) -> FloatingImageWidget:
+        view_port_size = self._board_area.viewport().rect().size()
+        return self.inner_addImage(image_name, image_model, view_port_size)
+
+    def inner_addImage(
+        self, image_name: str, image_model: ReferenceImageModel,
+        view_port_size: QSize = None
+    ) -> FloatingImageWidget:
+        #we should inform the new image about the current scene geometry and scale?
+        floating_image = FloatingImageWidget(image_name, image_model, view_port_size, parent=None)
         floating_image_proxy = self._board_scene.addWidget(floating_image)
         floating_image_proxy.setZValue(image_model.z_order)
         self._opened_images[image_name] = floating_image_proxy
@@ -358,7 +371,6 @@ class ReferenceBoardView(QMainWindow):
         self.box = SelectionBox(image.size(), 2, parent=self)
         self.box.move(self.pos())
         self.box.show()
-
 
 class BoardGraphicView(QGraphicsView):
     _scale: float = 1
@@ -445,7 +457,6 @@ class BoardGraphicView(QGraphicsView):
 
     def ignoreEvents(self, ignore: bool = True) -> None:
         self._ignore_mouse_event = ignore
-
 
 def _debug_Point(p: QPoint) -> str:
     return f"{p.x()},{p.y()}"

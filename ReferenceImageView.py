@@ -49,7 +49,7 @@ class FloatingImageWidget(QWidget):
     selected: typing.ClassVar[pyqtSignal] = pyqtSignal(str)
 
     def __init__(
-        self, image_name: str, image_model: ReferenceImageModel, parent: QWidget = None
+        self, image_name: str, image_model: ReferenceImageModel, board_view_size: QSize = None, parent: QWidget = None
     ) -> None:
         super().__init__(parent)
 
@@ -60,13 +60,33 @@ class FloatingImageWidget(QWidget):
         self._image_name = image_name
 
         self._pixmap = QPixmap(image_model.path)
+
+        # compute image scale to make it fit within the window
+        if not board_view_size == None:
+            print(f"board_view_size: {board_view_size.width()}x{board_view_size.height()}")
+            board_view_padding = 100
+            img_size = self._pixmap.size()
+            print(f"image size: {img_size.width()}x{img_size.height()}")
+            x_scale = (board_view_size.width() - board_view_padding) / img_size.width()
+            y_scale = (board_view_size.height() - board_view_padding) / img_size.height()
+            img_scale = x_scale if x_scale < y_scale else y_scale
+            if img_scale < 1: self._image_model.scale = img_scale
+            print(f"the image scale will be: {self._image_model.scale}")
+
+
         self._pixmap_size = self._pixmap.size() * self._image_model.scale
         self._pixmap_offset = QPoint(
             image_model.pixmap_offset["x"], image_model.pixmap_offset["y"]
         )
 
-        view_size = QSize(image_model.view_size["w"], image_model.view_size["h"])
-        self.setFixedSize(view_size)
+        #FIXME: "view_size" property in image_model is redundant!
+        tmp_pixmap_size = QSize(image_model.view_size["w"], image_model.view_size["h"])
+        if self._pixmap_size != tmp_pixmap_size:
+            print(f"WARNING: computed sized differs from the stored one! {self._pixmap_size} != {tmp_pixmap_size}")
+        else :
+            print(f"Computed sized match with stored one! {self._pixmap_size} != {tmp_pixmap_size}")
+
+        self.setFixedSize(self._pixmap_size)
         self.setMinimumSize(0, 0)
         self.setMaximumSize(16777215, 16777215)  # QWIDGETSIZE_MAX
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -318,7 +338,7 @@ class FloatingImageWidget(QWidget):
             self.setFixedSize(self.size() * scale_ratio)
             accepted = True
 
-        # aplly new scale to image content
+        # apply new scale to image content
         if accepted:
             self._pixmap_offset *= scale_ratio
             # correct the image offset to keep visible the area under the mouse while zooming in/out

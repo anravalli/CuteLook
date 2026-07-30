@@ -115,7 +115,7 @@ class ReferenceBoard:
             path = pathlib.Path(image_model.path)
             if path.exists() and path.is_file():
                 # create view
-                new_image = self._board_window.addImage(image_name, image_model)
+                new_image = self._board_window.addStoredImage(image_name, image_model)
                 # connect to view signals
                 new_image.image_state_changed.connect(self.imageChanged)
             else:
@@ -151,7 +151,7 @@ class ReferenceBoard:
         image_model.z_order = self._next_z
         self._z_stack[self._next_z] = image_name
         # create the view
-        new_image = self._board_window.addImage(image_name, image_model)
+        new_image = self._board_window.addNewImage(image_name, image_model)
         new_image.image_state_changed.connect(self.imageChanged)
         new_image.selected.connect(self.checkSelectedImage)
 
@@ -170,7 +170,6 @@ class ReferenceBoard:
                 self.closeImage(img_name)
             case FloatingImageState.SELECTED:
                 # print(f"image selected: {img_name}")
-
                 self.checkSelectedImage(img_name)
             case FloatingImageState.UNSELECTED:
                 # print(f"image deselect: {img_name}")
@@ -225,8 +224,7 @@ class ReferenceBoard:
         # print(f"selected image: {img_name}")
         if img_name not in self._selected_images:
             # print(f"old selected image: {self._selected_images}")
-            self._board_window.deselectImages(self._selected_images)
-            self._selected_images.clear()
+            self.deselectAllImages()
             if selected:
                 self._selected_images.append(img_name)
                 self._board_window._board_area.ignoreEvents(True)
