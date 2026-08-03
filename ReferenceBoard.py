@@ -1,6 +1,6 @@
 import pathlib
 from pydantic import ValidationError
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QPoint
 
 from UnitTesting import RunTest, TestFunction, TestFailedException
 
@@ -131,35 +131,50 @@ class ReferenceBoard:
         # print(f"next Z: {self._next_z}")
 
     # need unit test
-    def addNewImage(self, image_path: pathlib.Path) -> None:
-        # check file path
-        if not (image_path.exists() and image_path.is_file()):
-            # print(f"ERROR: invalid path: {pathlib.Path}")
-            raise Exception("invalid path")
-        print(f'adding image "{image_path}"')
+    def addNewImage(self, images_paths: [str]) -> None:
+        default_pos_xy = 50
+        initial_pos_multi = 1
+        for path in images_paths:
+            image_path = pathlib.Path(path)
+            # check file path
+            if not (image_path.exists() and image_path.is_file()):
+                # print(f"ERROR: invalid path: {pathlib.Path}")
+                raise Exception("invalid path")
+            print(f'adding image "{image_path}"')
 
-        # get a valid image name
-        image_name = image_path.stem
-        i = 1
-        while image_name in self._reference_board.reference_images.keys():
-            image_name = f"{image_name}-{i}"
-            i += 1
+            # get a valid image name
+            image_name = image_path.stem
+            i = 1
+            while image_name in self._reference_board.reference_images.keys():
+                image_name = f"{image_path.stem}-{i}"
+                i += 1
 
-        # create the image model and initialize it
-        image_model = ReferenceImageModel()
-        image_model.path = image_path.absolute().as_posix()
-        image_model.z_order = self._next_z
-        self._z_stack[self._next_z] = image_name
-        # create the view
-        new_image = self._board_window.addNewImage(image_name, image_model)
-        new_image.image_state_changed.connect(self.imageChanged)
-        new_image.selected.connect(self.checkSelectedImage)
+            # create the image model and initialize it
+            image_model = ReferenceImageModel()
+            image_model.path = image_path.absolute().as_posix()
+            image_model.z_order = self._next_z
 
-        # add the image to the board and set it to modified
-        self._reference_board.reference_images[image_name] = image_model
-        self.updateModifiedStatus(True)
-        self._next_z += 1
-        # print(f'added image "{image_name}"')
+            # set the default position for new images
+            offset = QPoint(default_pos_xy * initial_pos_multi,
+                default_pos_xy * initial_pos_multi)
+
+            pos = self._board_window.viewportOffsetToScenePosition(offset)
+
+            image_model.view_position["x"] = pos.x()
+            image_model.view_position["y"] = pos.y()
+
+            self._z_stack[self._next_z] = image_name
+            # create the view
+            new_image = self._board_window.addNewImage(image_name, image_model)
+            new_image.image_state_changed.connect(self.imageChanged)
+            new_image.selected.connect(self.checkSelectedImage)
+
+            # add the image to the board and set it to modified
+            self._reference_board.reference_images[image_name] = image_model
+            self.updateModifiedStatus(True)
+            self._next_z += 1
+            # print(f'added image "{image_name}"')
+            initial_pos_multi = initial_pos_multi + 1
 
     # need unit test
     def imageChanged(self, img_name: str, state: FloatingImageState) -> None:

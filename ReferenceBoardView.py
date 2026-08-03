@@ -48,7 +48,7 @@ class ReferenceBoardView(QMainWindow):
     _context_menu_pos: QPoint = None
     _toolbar: QToolBar = None
 
-    add_image: typing.ClassVar[pyqtSignal] = pyqtSignal(pathlib.Path)
+    add_image: typing.ClassVar[pyqtSignal] = pyqtSignal(list)
 
     save_board: typing.ClassVar[pyqtSignal] = pyqtSignal(bool)
     close_board: typing.ClassVar[pyqtSignal] = pyqtSignal(int)
@@ -293,9 +293,7 @@ class ReferenceBoardView(QMainWindow):
         )
         # build image model
         if len(file_paths) != 0:
-            for file_path in file_paths:
-                path = pathlib.Path(file_path)
-                self.add_image.emit(path)
+            self.add_image.emit(file_paths)             
 
     def addStoredImage(
         self, image_name: str, image_model: ReferenceImageModel
@@ -372,6 +370,10 @@ class ReferenceBoardView(QMainWindow):
         self.box.move(self.pos())
         self.box.show()
 
+    def viewportOffsetToScenePosition(self, offset: QPoint) -> QPoint:
+        scene_pos = self._board_area.mapToScene(offset)
+        return QPoint(int(scene_pos.x()), int(scene_pos.y()))
+
 class BoardGraphicView(QGraphicsView):
     _scale: float = 1
     _pan_start: QPoint
@@ -384,13 +386,13 @@ class BoardGraphicView(QGraphicsView):
         # self.setCursor(Qt.ClosedHandCursor)
 
     def mousePressEvent(self, event):
-        print("mousePressEvent")
+        #print("mousePressEvent")
         self.unsetCursor()
         if event.button() == Qt.MiddleButton:
             QGuiApplication.setOverrideCursor(Qt.CursorShape.ClosedHandCursor)
             self._pan_start_pos = event.pos()
             event.accept()
-            print(f"++ initial scene rect: {self.sceneRect()}")
+            print(f"mousePressEvent: initial scene rect: {self.sceneRect()}")
         else:
             super().mousePressEvent(event)
 
