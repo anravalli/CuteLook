@@ -167,7 +167,7 @@ class ReferenceBoard:
             # create the view
             new_image = self._board_window.addNewImage(image_name, image_model)
             new_image.image_state_changed.connect(self.imageChanged)
-            new_image.selected.connect(self.checkSelectedImage)
+
 
             # add the image to the board and set it to modified
             self._reference_board.reference_images[image_name] = image_model
@@ -195,6 +195,12 @@ class ReferenceBoard:
             case FloatingImageState.ZLOWERED:
                 # print(f"image z lowered: {img_name}")
                 self.lowerImageZ(img_name)
+            case FloatingImageState.MOUSE_ON:
+                self._board_window.imgMouseOver(img_name, True)
+            case FloatingImageState.MOUSE_OFF:
+                self._board_window.imgMouseOver(img_name, False)
+            case FloatingImageState.MOUSE_EVENT:
+                self._board_window.updateImageHighlightBox(img_name)
             case _:
                 self.updateModifiedStatus(True)
 

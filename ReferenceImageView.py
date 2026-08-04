@@ -27,6 +27,9 @@ class FloatingImageState(Enum):
     SELECTED = 8
     UNSELECTED = 9
     UPDATED = 10
+    MOUSE_ON = 11
+    MOUSE_OFF = 12
+    MOUSE_EVENT = 13
 
 
 class FloatingImageWidget(QWidget):
@@ -46,7 +49,6 @@ class FloatingImageWidget(QWidget):
     image_state_changed: typing.ClassVar[pyqtSignal] = pyqtSignal(
         str, FloatingImageState
     )
-    selected: typing.ClassVar[pyqtSignal] = pyqtSignal(str)
 
     def __init__(
         self, image_name: str, image_model: ReferenceImageModel, board_view_size: QSize = None, parent: QWidget = None
@@ -224,11 +226,13 @@ class FloatingImageWidget(QWidget):
 
     def enterEvent(self, event):
         self.show_buttons()
+        self.image_state_changed.emit(self._image_name, FloatingImageState.MOUSE_ON)
         super().enterEvent(event)
 
     def leaveEvent(self, event):
         if not self._selected:
             self.hide_buttons()
+        self.image_state_changed.emit(self._image_name, FloatingImageState.MOUSE_OFF)
         super().leaveEvent(event)
 
     def updateZetaOrder(self) -> None:
@@ -237,6 +241,9 @@ class FloatingImageWidget(QWidget):
         z = self._image_model.z_order
         if proxy:
             proxy.setZValue(z)
+
+    def _notifyMouseEvent(self) -> None:
+        self.image_state_changed.emit(self._image_name, FloatingImageState.MOUSE_EVENT)
 
     def deselect(self):
         self._selected = False
@@ -252,11 +259,15 @@ class FloatingImageWidget(QWidget):
                 proxy.setZValue(self._max_z)
             self._selected = True
             self.showHandles()
+            self._notifyMouseEvent()
+        else:
+            self._notifyMouseEvent()
         super().mouseDoubleClickEvent(event)
 
     def mousePressEvent(self, event):
         # print(f"{self._image_name}: mousePressEvent")
         modifiers = event.modifiers()
+        self._notifyMouseEvent()
         if event.button() == Qt.LeftButton:
             if not self._selected or modifiers == Qt.KeyboardModifier.ControlModifier:
                 # print(f"{self._image_name}: prepare move")
@@ -304,11 +315,13 @@ class FloatingImageWidget(QWidget):
 
             self.image_state_changed.emit(self._image_name, FloatingImageState.MOVED)
             event.accept()
+        self._notifyMouseEvent()
 
     def mouseReleaseEvent(self, event):
         # modifiers = event.modifiers()
         # self.image_state_changed.emit(self._image_name, FloatingImageState.SELECTED)
         self._drag_position = QPoint()
+        self._notifyMouseEvent()
         # event.ignore()
         event.accept()
 
@@ -390,6 +403,7 @@ class FloatingImageWidget(QWidget):
 
         self.setFixedSize(new_size)
         self.updateModel()
+        self._notifyMouseEvent()
 
     def updateModel(self):
         pos = self.pos()

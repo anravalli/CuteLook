@@ -22,7 +22,7 @@ from PyQt5.QtGui import (
 from PyQt5.QtCore import Qt, QSize, QPoint, QRect, pyqtSignal
 
 from ReferenceImageView import FloatingImageWidget
-from CustomWidgets import FloatingLineEdit, SelectionBox
+from CustomWidgets import FloatingLineEdit, SelectionBox, OverlayLabel
 
 # from ReferenceBoard import *
 from ReferenceBoardModels import ReferenceImageModel
@@ -47,6 +47,10 @@ class ReferenceBoardView(QMainWindow):
     _board_scene: QGraphicsScene = None
     _context_menu_pos: QPoint = None
     _toolbar: QToolBar = None
+
+    _img_name_label: OverlayLabel = None
+    _img_highlit_box: SelectionBox = None
+    _current_highlighted_img = ""
 
     add_image: typing.ClassVar[pyqtSignal] = pyqtSignal(list)
 
@@ -85,6 +89,23 @@ class ReferenceBoardView(QMainWindow):
 
         self._board_area.setContextMenuPolicy(Qt.CustomContextMenu)
         self._board_area.customContextMenuRequested.connect(self.showBoardContexMenu)
+
+        self._img_name_label = OverlayLabel(text="popoop asdkk", parent=self._board_area)
+        self.updateImageNameLabelPosition()
+        self._img_name_label.hide()
+        self._img_highlit_box = SelectionBox(parent=self._board_area)
+        self._img_highlit_box.hide()
+
+
+    def updateImageNameLabelPosition(self):
+        view_rect = self._board_area.rect()
+        ol_pos_x = int((view_rect.width() -  self._img_name_label.width() ) / 2)
+        ol_pos_y = int(view_rect.height() - 5 - self._img_name_label.height())
+        self._img_name_label.move(ol_pos_x, ol_pos_y)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.updateImageNameLabelPosition()
 
     def showBoardContexMenu(self, point: QPoint) -> None:
         context_menu = QMenu(self)
@@ -343,11 +364,15 @@ class ReferenceBoardView(QMainWindow):
                 image.hide()
             self._image_hidden = True
             action.action.setIcon(action.icon2)
+            self._img_highlit_box.hide()
+            self._img_name_label.hide()
 
     def setImageHide(self) -> None:
         self._image_hidden = True
         action = self._board_actions["show_hide_image"]
         action.action.setIcon(action.icon3)
+        self._img_highlit_box.hide()
+        self._img_name_label.hide()
 
     def mousePressEvent(self, event):
         self.deselect_images.emit()
@@ -363,41 +388,86 @@ class ReferenceBoardView(QMainWindow):
     def setImageZvalue(self, img_name: str, z_order: int) -> None:
         self._opened_images[img_name].setZValue(z_order)
 
-    def setSelectionBox(self, image_name: str, visible: bool = True):
-        # selection box
-        image = self._opened_images[image_name]
-        self.box = SelectionBox(image.size(), 2, parent=self)
-        self.box.move(self.pos())
-        self.box.show()
+    def updateImageHighlightBox(self, img_name: str) -> None:
+        self._current_highlighted_img = img_name
+        self.inner_updateImageHighlightBox()
+
+    def inner_updateImageHighlightBox(self) -> None:
+        img_name = self._current_highlighted_img
+        img = self._opened_images[img_name].widget()
+        new_pos = self._board_area.mapFromScene(img.pos())
+        self._img_highlit_box.move(new_pos)
+        self._img_highlit_box.setSize(img.size(), self._board_area.getScale())
 
     def viewportOffsetToScenePosition(self, offset: QPoint) -> QPoint:
         scene_pos = self._board_area.mapToScene(offset)
         return QPoint(int(scene_pos.x()), int(scene_pos.y()))
 
+    def imgMouseOver(self, img_name: str, is_on: bool) -> None:
+        if is_on:
+            self._img_name_label.setText(img_name)
+            self.updateImageHighlightBox(img_name)
+            self._img_name_label.show()
+            self._img_highlit_box.show()
+        else:
+            self._img_name_label.hide()
+            self._img_highlit_box.hide()
+
 class BoardGraphicView(QGraphicsView):
     _scale: float = 1
     _pan_start: QPoint
     _ignore_mouse_event: bool = False
+    _space_pressed: bool = False
+    _is_panning: bool = False
 
     def __init__(self, scene, parent=None):
         super().__init__(scene, parent)
         self.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
         self.setRenderHint(QPainter.RenderHint.HighQualityAntialiasing)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         # self.setCursor(Qt.ClosedHandCursor)
+
+    def getScale(self) -> float:
+        return self._scale
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key.Key_Space and not event.isAutoRepeat():
+            self._space_pressed = True
+            event.accept()
+        else:
+            super().keyPressEvent(event)
+
+    def keyReleaseEvent(self, event):
+        if event.key() == Qt.Key.Key_Space and not event.isAutoRepeat():
+            self._space_pressed = False
+            event.accept()
+        else:
+            super().keyReleaseEvent(event)
+
+    def _isPanStartEvent(self, event) -> bool:
+        return event.button() == Qt.MiddleButton or (
+            event.button() == Qt.LeftButton and self._space_pressed
+        )
+
+    def _isPanMoveEvent(self, event) -> bool:
+        middle_button_drag = event.buttons() & Qt.MiddleButton
+        space_left_button_drag = event.buttons() & Qt.LeftButton and self._space_pressed
+        return middle_button_drag or space_left_button_drag
 
     def mousePressEvent(self, event):
         #print("mousePressEvent")
         self.unsetCursor()
-        if event.button() == Qt.MiddleButton:
+        if self._isPanStartEvent(event):
             QGuiApplication.setOverrideCursor(Qt.CursorShape.ClosedHandCursor)
             self._pan_start_pos = event.pos()
+            self._is_panning = True
             event.accept()
             print(f"mousePressEvent: initial scene rect: {self.sceneRect()}")
         else:
             super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
-        if event.buttons() & Qt.MiddleButton:
+        if self._is_panning and self._isPanMoveEvent(event):
             drag = event.pos() - self._pan_start_pos
             self._panWithoutScrollbars(drag)
             self._pan_start_pos = event.pos()
@@ -421,9 +491,12 @@ class BoardGraphicView(QGraphicsView):
         self.centerOn(new_center)
 
     def mouseReleaseEvent(self, event):
-        if event.button() == Qt.MiddleButton:
+        if self._is_panning and (
+            event.button() == Qt.MiddleButton or event.button() == Qt.LeftButton
+        ):
             QGuiApplication.restoreOverrideCursor()
             self._pan_start_pos = QPoint()
+            self._is_panning = False
             event.accept()
         else:
             super().mouseReleaseEvent(event)
@@ -438,7 +511,7 @@ class BoardGraphicView(QGraphicsView):
             super().wheelEvent(event)
         else:
             new_scale = self._scale
-            print(f"old scale: {new_scale}")
+            #print(f"old scale: {new_scale}")
             scale_increment = 0.9
             if event.angleDelta().y() > 0:
                 scale_increment = 1.1
@@ -448,7 +521,7 @@ class BoardGraphicView(QGraphicsView):
             elif new_scale > max_scale:
                 new_scale = max_scale
 
-            print(f"new scale: {new_scale}")
+            #print(f"new scale: {new_scale}")
             self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
             transform = QTransform()
             transform.scale(new_scale, new_scale)
@@ -456,6 +529,7 @@ class BoardGraphicView(QGraphicsView):
 
             self._scale = new_scale
             self.setTransformationAnchor(QGraphicsView.NoAnchor)
+            self.parent().inner_updateImageHighlightBox()
 
     def ignoreEvents(self, ignore: bool = True) -> None:
         self._ignore_mouse_event = ignore

@@ -40,19 +40,19 @@ Status:
 - [ ] add "fit to window" and "1:1" buttons to board toolbar
 - [x] newly added images shall be fully visible independently of their size
 - [x] add a proper build/packging infrastructure to ease app distribution
-- [ ] image contour should be highlighted and drown in foreground on mouse over
-- [ ] image name shall be displayed at the bottom of the board view (in foregraound) on mouse over
+- [x] image contour should be highlighted and drown in foreground on mouse over
+- [x] image name shall be displayed at the bottom of the board view (in foregraound) on mouse over
 - [ ] implement a "recently opened boards" list and make it available through the file menu
+- [ ] move control buttons to a dedicated custom toolbar above the image window
 
 ### Version 1.0
 Goals: UI and UX improvement
 - [ ] prepare an UI mockup
-- [ ] move control buttons to a dedicated custom toolbar above the image window
 - [ ] add a "grip" handle to control toolbar to move the image window while in edit mode 
 - [ ] change mouse shape according to the current action (dragging, resizing, etc.)
 - [ ] redesign the resize handles
 - [ ] poster tool: generate a variable resolution image of the board (all the images stiched together)
-- [ ] add native Windows support add 
+- [ ] add native Windows support
 
 ### Future Releases (2.0)
 Goal: move forward from a "decent" app for managing reference images to something richer and usefull for the users.
@@ -114,4 +114,7 @@ Below are reported a few improvements ideas.
 - [x] crash on "deselect" after an immage is closed
 - [ ] resize handles capture "click" events outside the "drawn" handle area
 - [ ] sometimes entering image-edit mode couse the image alignment to view bottom right
+- [ ] index exception on z change after closing an image
+- [ ] higlight box is not aligned to the image while zooming the scene if the view scrolls
+- [ ] newly opened images appear misplaced if the board view has not been updated (es. drag, resized, etc.)
 
