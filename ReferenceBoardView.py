@@ -454,6 +454,9 @@ class BoardGraphicView(QGraphicsView):
         space_left_button_drag = event.buttons() & Qt.LeftButton and self._space_pressed
         return middle_button_drag or space_left_button_drag
 
+    def isPanning(self) -> bool:
+        return self._is_panning
+
     def mousePressEvent(self, event):
         #print("mousePressEvent")
         self.unsetCursor()
@@ -471,6 +474,7 @@ class BoardGraphicView(QGraphicsView):
             drag = event.pos() - self._pan_start_pos
             self._panWithoutScrollbars(drag)
             self._pan_start_pos = event.pos()
+            self.parent().inner_updateImageHighlightBox()
             event.accept()
         else:
             # print("no mid")
