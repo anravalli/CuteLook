@@ -81,14 +81,14 @@ class FloatingImageWidget(QWidget):
             image_model.pixmap_offset["x"], image_model.pixmap_offset["y"]
         )
 
-        #FIXME: "view_size" property in image_model is redundant!
-        tmp_pixmap_size = QSize(image_model.view_size["w"], image_model.view_size["h"])
-        if self._pixmap_size != tmp_pixmap_size:
-            print(f"WARNING: computed sized differs from the stored one! {self._pixmap_size} != {tmp_pixmap_size}")
-        else :
-            print(f"Computed sized match with stored one! {self._pixmap_size} != {tmp_pixmap_size}")
-
-        self.setFixedSize(self._pixmap_size)
+        pixmap_size = None
+        if image_model.view_size == None:
+            self._image_model.view_size = {"w": self._pixmap_size.width(), "h": self._pixmap_size.height()}
+            pixmap_size = self._pixmap_size
+        else:
+            pixmap_size = QSize(image_model.view_size["w"], image_model.view_size["h"])
+        
+        self.setFixedSize(pixmap_size)
         self.setMinimumSize(0, 0)
         self.setMaximumSize(16777215, 16777215)  # QWIDGETSIZE_MAX
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)

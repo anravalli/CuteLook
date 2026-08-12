@@ -163,6 +163,9 @@ class ReferenceBoard:
             image_model.view_position["x"] = pos.x()
             image_model.view_position["y"] = pos.y()
 
+            # needed to correctly set the appearence of new images
+            image_model.view_size = None
+
             self._z_stack[self._next_z] = image_name
             # create the view
             new_image = self._board_window.addNewImage(image_name, image_model)
@@ -340,14 +343,20 @@ class ReferenceBoard:
             view_state.maximized = False
 
         pos = self._board_window.pos()
-        # print(f"...position: {pos.x()}x{pos.y()}")
         view_state.position["x"] = pos.x()
         view_state.position["y"] = pos.y()
+
+        view_state.zoom_factor = self._board_window.getCurrentViewScale()
+        # print("...getSceneCenter")
+        scene_center = self._board_window.getSceneCenter()
+        # print(f"...scene_center: {scene_center}")
+        view_state.scene_center["x"] = scene_center.x()
+        view_state.scene_center["y"] = scene_center.y()
 
         return view_state
 
     def restoreViewState(self, view_state):
-        # print(f"restoring view state: {view_state}")
+        # print("restoreViewState")
         if view_state.maximized:
             self._board_window.setWindowState(Qt.WindowState.WindowMaximized)
         else:
@@ -357,6 +366,10 @@ class ReferenceBoard:
                 view_state.size["w"],
                 view_state.size["h"],
             )
+        self._board_window.setCurrentViewScale(view_state.zoom_factor)
+        # print(f"Restored view ZOOM factor: {self._board_window._board_area._scale}")
+        # print(f"restoring scene center to: {view_state.scene_center["x"]}, {view_state.scene_center["y"]}")
+        self._board_window.setSceneCenter(view_state.scene_center["x"], view_state.scene_center["y"])
 
 
 from os import remove

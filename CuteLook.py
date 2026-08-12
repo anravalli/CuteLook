@@ -21,7 +21,7 @@ class CuteLook:
 
     def __init__(self, board_path: str = "") -> None:
         super().__init__()
-        print("Loading Configuration")
+        # print("Loading Configuration")
         config_dir = Path(user_config_dir())
         self._app_config_path = config_dir / "CuteLook.conf"
         if self._app_config_path.exists() and self._app_config_path.is_file():
@@ -54,7 +54,7 @@ class CuteLook:
             )
 
         # 1. get board id
-        # board id for this session are per session ad are only incremented
+        # board ids are per session and incremental
         new_board_id = self._next_board_id
         self._next_board_id += 1
 
@@ -63,7 +63,7 @@ class CuteLook:
 
         # 3. create the controller
         new_board = ReferenceBoard(new_board_id, board_model, board_view)
-        new_board.updateModifiedStatus(is_new)
+        new_board.updateModifiedStatus(is_new) # new empty boards shouldn't be marked as "modified"
         new_board._is_new = is_new
         new_board.setBoardPath(board_path)
 
@@ -125,12 +125,10 @@ class CuteLook:
         self._app_config = CuteLookConfig.model_validate_json(json_cfg)
 
     def addBoardToRecent(self, board: ReferenceBoard) -> None:
-        # print("addBoardToRecent")
         is_recent = False
         for i, saved_board in enumerate(self._app_config.recent_boards):
-            # print(f"board: {board._board_path}, saved board: {saved_board.path}")
             if board._board_path == saved_board.path:
-                # print("restore existing board")
+                # view state is stored locally only for recents boards
                 board.restoreViewState(saved_board.view_state)
                 # move on to the top of recent boards list
                 self._app_config.recent_boards.pop(i)
@@ -138,7 +136,6 @@ class CuteLook:
                 is_recent = True
                 break
         if not is_recent:
-            # print("add board to recent")
             board_list_entry = RefBoard()
             board_list_entry.path = board._board_path
             board_list_entry.view_state = board.getViewState()  # FIXME review needed

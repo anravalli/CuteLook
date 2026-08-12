@@ -340,9 +340,13 @@ class ReferenceBoardView(QMainWindow):
         return floating_image
 
     def closeImage(self, image_name: str) -> None:
+        self._img_highlit_box.hide()
+        self._img_name_label.hide()
+        # reset to default
+        self._current_highlighted_img = ""
         img = self._opened_images.pop(image_name)
         # Item is removed from scene by widget destructor
-        # print(f'item in scene: {len(self._board_scene.items())}')
+        #print(f'item in scene: {len(self._board_scene.items())}')
         img.deleteLater()
 
     def showMissingImageWarning(self, name: str, path: str) -> None:
@@ -393,6 +397,9 @@ class ReferenceBoardView(QMainWindow):
         self.inner_updateImageHighlightBox()
 
     def inner_updateImageHighlightBox(self) -> None:
+        if self._current_highlighted_img == "":
+            # handle the default case where there is no image to highlight
+            return
         img_name = self._current_highlighted_img
         img = self._opened_images[img_name].widget()
         new_pos = self._board_area.mapFromScene(img.pos())
@@ -413,8 +420,23 @@ class ReferenceBoardView(QMainWindow):
             self._img_name_label.hide()
             self._img_highlit_box.hide()
 
+    def getCurrentViewScale(self) -> float:
+        return self._board_area._scale
+
+    def setCurrentViewScale(self, scale: float):
+        self._board_area._scale = scale
+        self._board_area.scaleView()
+
+    def getSceneCenter(self):
+        return self._board_area.center()
+
+    def setSceneCenter(self, x, y):
+        # print(f"current center: {self._board_area.center()}")
+        self._board_area.moveCenterBy(QPoint(int(x), int(y)))
+        # print(f"updated center: {self._board_area.center()}")
+    
 class BoardGraphicView(QGraphicsView):
-    _scale: float = 1
+    _scale: float = 1.0
     _pan_start: QPoint
     _ignore_mouse_event: bool = False
     _space_pressed: bool = False
@@ -425,7 +447,9 @@ class BoardGraphicView(QGraphicsView):
         self.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
         self.setRenderHint(QPainter.RenderHint.HighQualityAntialiasing)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        # self.setCursor(Qt.ClosedHandCursor)
+        
+        #print(f"Board view scale: {self._scale}")
+        self.scaleView()
 
     def getScale(self) -> float:
         return self._scale
@@ -484,15 +508,23 @@ class BoardGraphicView(QGraphicsView):
         drag_scene = self.mapToScene(self._pan_start_pos) - self.mapToScene(
             self._pan_start_pos + drag
         )
+        self.moveCenterBy(drag_scene)
+
+    def moveCenterBy(self, delta: QPoint):
         visible_scene_rect = self.mapToScene(self.viewport().rect()).boundingRect()
-        moved_visible_rect = visible_scene_rect.translated(drag_scene)
+        moved_visible_rect = visible_scene_rect.translated(delta)
         scene_rect = self.sceneRect()
         if not scene_rect.contains(moved_visible_rect):
             self.setSceneRect(
                 scene_rect.united(moved_visible_rect).adjusted(-10, -10, 10, 10)
             )
-        new_center = visible_scene_rect.center() + drag_scene
+        new_center = visible_scene_rect.center() + delta
         self.centerOn(new_center)
+
+    def center(self) -> QPoint:
+        visible_scene_rect = self.mapToScene(self.viewport().rect()).boundingRect()
+        return visible_scene_rect.center()
+        #return self.viewport().rect().center()
 
     def mouseReleaseEvent(self, event):
         if self._is_panning and (
@@ -515,7 +547,6 @@ class BoardGraphicView(QGraphicsView):
             super().wheelEvent(event)
         else:
             new_scale = self._scale
-            #print(f"old scale: {new_scale}")
             scale_increment = 0.9
             if event.angleDelta().y() > 0:
                 scale_increment = 1.1
@@ -525,18 +556,21 @@ class BoardGraphicView(QGraphicsView):
             elif new_scale > max_scale:
                 new_scale = max_scale
 
-            #print(f"new scale: {new_scale}")
-            self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
-            transform = QTransform()
-            transform.scale(new_scale, new_scale)
-            self.setTransform(transform)
-
+            #print(f"(NEW) Board view scale: {new_scale}")
             self._scale = new_scale
-            self.setTransformationAnchor(QGraphicsView.NoAnchor)
+            self.scaleView()
             self.parent().inner_updateImageHighlightBox()
+
+    def scaleView(self):
+        self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
+        transform = QTransform()
+        transform.scale(self._scale, self._scale)
+        self.setTransform(transform)
+        self.setTransformationAnchor(QGraphicsView.NoAnchor)
 
     def ignoreEvents(self, ignore: bool = True) -> None:
         self._ignore_mouse_event = ignore
+
 
 def _debug_Point(p: QPoint) -> str:
     return f"{p.x()},{p.y()}"
