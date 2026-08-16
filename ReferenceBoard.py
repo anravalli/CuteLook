@@ -88,7 +88,7 @@ class ReferenceBoard:
 
         # throw if error/fails
         if self._modified:
-            # Exceptions will be farwarded to the caller
+            # Exceptions will be forwarded to the caller
             # print(f"...to: {self._board_path}")
             with open(save_to, "w", encoding="utf-8") as f:
                 json_output = self._reference_board.model_dump_json(indent=4)

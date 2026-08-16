@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import (
     QToolBar,
     QMenu,
     QGraphicsView,
-    QGraphicsScene,
+    QGraphicsScene, QGraphicsProxyWidget,
 )
 from PyQt5.QtGui import (
     QCloseEvent,
@@ -19,7 +19,7 @@ from PyQt5.QtGui import (
     QTransform,
     QPainter,
 )
-from PyQt5.QtCore import Qt, QSize, QPoint, QRect, pyqtSignal
+from PyQt5.QtCore import Qt, QSize, QPoint, QRect, pyqtSignal, QRectF, QPointF
 
 from ReferenceImageView import FloatingImageWidget
 from CustomWidgets import FloatingLineEdit, SelectionBox, OverlayLabel
@@ -37,7 +37,7 @@ class ReferenceBoardAction:
 
 
 class ReferenceBoardView(QMainWindow):
-    _opened_images: dict[str, FloatingImageWidget] = None
+    _opened_images: dict[str, QGraphicsProxyWidget] = None
     _image_hidden: bool = False
     _use_os_theme: bool = False
     _board_actions: dict[str, ReferenceBoardAction] = None
@@ -49,7 +49,7 @@ class ReferenceBoardView(QMainWindow):
     _toolbar: QToolBar = None
 
     _img_name_label: OverlayLabel = None
-    _img_highlit_box: SelectionBox = None
+    _img_highlight_box: SelectionBox = None
     _current_highlighted_img = ""
 
     add_image: typing.ClassVar[pyqtSignal] = pyqtSignal(list)
@@ -83,18 +83,20 @@ class ReferenceBoardView(QMainWindow):
         self._board_actions["save_board"].action.triggered.connect(self.saveBoard)
         self._board_actions["save_as_board"].action.triggered.connect(self.saveBoardAs)
         self._board_actions["add_image"].action.triggered.connect(self.openImage)
-        self._board_actions["show_hide_image"].action.triggered.connect(
-            self.showHideImages
-        )
+        self._board_actions["show_hide_image"].action.triggered.connect(self.showHideImages)
+        self._board_actions["fit_to_view"].action.triggered.connect(self.fitIntoView)
+        self._board_actions["reset_zoom"].action.triggered.connect(self.resetZoom)
 
         self._board_area.setContextMenuPolicy(Qt.CustomContextMenu)
         self._board_area.customContextMenuRequested.connect(self.showBoardContexMenu)
 
-        self._img_name_label = OverlayLabel(text="popoop asdkk", parent=self._board_area)
+        self._img_name_label = OverlayLabel(text="", parent=self._board_area)
         self.updateImageNameLabelPosition()
         self._img_name_label.hide()
         self._img_highlit_box = SelectionBox(parent=self._board_area)
         self._img_highlit_box.hide()
+        self._img_highlight_box = SelectionBox(parent=self._board_area)
+        self._img_highlight_box.hide()
 
 
     def updateImageNameLabelPosition(self):
@@ -115,12 +117,6 @@ class ReferenceBoardView(QMainWindow):
         #         margin-left: -5px;
         #     }
         # """)
-        # print(f'--- board {self}"')
-        # print(f'--- board dict: {self.__dict__}"')
-        # print(f"--- board actions ref: {hex(id(self._board_actions))}")
-        # print(f'--- board actions content: \n\t {self._board_actions}"')
-        # print(f"--- _opened_images ref: {hex(id(self._opened_images))}")
-        # print(f"--- _opened_images ref: \n\t{self._opened_images}")
         for board_action in self._board_actions.values():
             if board_action is None:
                 context_menu.addSeparator()
@@ -221,6 +217,16 @@ class ReferenceBoardView(QMainWindow):
         self._board_actions["show_hide_image"].text = "Show/Hide Images"
         self._board_actions["show_hide_image"].tooltip = "Show/Hide all images"
 
+        self._board_actions["separator2"] = None
+
+        self._board_actions["fit_to_view"] = ReferenceBoardAction()
+        self._board_actions["fit_to_view"].text = "Fit to screen"
+        self._board_actions["fit_to_view"].tooltip = "Zoom in/out to make all images visibles"
+
+        self._board_actions["reset_zoom"] = ReferenceBoardAction()
+        self._board_actions["reset_zoom"].text = "Reset Zoom"
+        self._board_actions["reset_zoom"].tooltip = "Reset the zoom level"
+
     def addBoardActionsIconsCustom(self) -> None:
         # print("addBoardActionsIconsCustom")
         self._board_actions["new_board"].icon = QIcon("icons/add-document.svg")
@@ -232,6 +238,8 @@ class ReferenceBoardView(QMainWindow):
         self._board_actions["show_hide_image"].icon = QIcon("icons/eye.svg")
         self._board_actions["show_hide_image"].icon2 = QIcon("icons/eye-crossed.svg")
         self._board_actions["show_hide_image"].icon3 = QIcon("icons/low-vision.svg")
+        self._board_actions["fit_to_view"].icon = QIcon("icons/dark_zoom-fit.svg")
+        self._board_actions["reset_zoom"].icon = QIcon("icons/dark_zoom-100.svg")
 
     def addBoardActionsIconsFromTheme(self) -> None:
         self._board_actions["new_board"].icon = QIcon.fromTheme(
@@ -279,7 +287,7 @@ class ReferenceBoardView(QMainWindow):
             "This board is modified. Close it anyway?",
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No,
-        )
+            )
         # print(f"reply: {reply}")
         # print(f"NO: {QMessageBox.No}")
         # print(f"Yes: {QMessageBox.Yes}")
@@ -314,22 +322,22 @@ class ReferenceBoardView(QMainWindow):
         )
         # build image model
         if len(file_paths) != 0:
-            self.add_image.emit(file_paths)             
+            self.add_image.emit(file_paths)
 
     def addStoredImage(
-        self, image_name: str, image_model: ReferenceImageModel
+            self, image_name: str, image_model: ReferenceImageModel
     ) -> FloatingImageWidget:
         return self.inner_addImage(image_name, image_model)
 
     def addNewImage(
-        self, image_name: str, image_model: ReferenceImageModel
+            self, image_name: str, image_model: ReferenceImageModel
     ) -> FloatingImageWidget:
         view_port_size = self._board_area.viewport().rect().size()
         return self.inner_addImage(image_name, image_model, view_port_size)
 
     def inner_addImage(
-        self, image_name: str, image_model: ReferenceImageModel,
-        view_port_size: QSize = None
+            self, image_name: str, image_model: ReferenceImageModel,
+            view_port_size: QSize = None
     ) -> FloatingImageWidget:
         #we should inform the new image about the current scene geometry and scale?
         floating_image = FloatingImageWidget(image_name, image_model, view_port_size, parent=None)
@@ -340,7 +348,7 @@ class ReferenceBoardView(QMainWindow):
         return floating_image
 
     def closeImage(self, image_name: str) -> None:
-        self._img_highlit_box.hide()
+        self._img_highlight_box.hide()
         self._img_name_label.hide()
         # reset to default
         self._current_highlighted_img = ""
@@ -368,14 +376,14 @@ class ReferenceBoardView(QMainWindow):
                 image.hide()
             self._image_hidden = True
             action.action.setIcon(action.icon2)
-            self._img_highlit_box.hide()
+            self._img_highlight_box.hide()
             self._img_name_label.hide()
 
     def setImageHide(self) -> None:
         self._image_hidden = True
         action = self._board_actions["show_hide_image"]
         action.action.setIcon(action.icon3)
-        self._img_highlit_box.hide()
+        self._img_highlight_box.hide()
         self._img_name_label.hide()
 
     def mousePressEvent(self, event):
@@ -403,8 +411,8 @@ class ReferenceBoardView(QMainWindow):
         img_name = self._current_highlighted_img
         img = self._opened_images[img_name].widget()
         new_pos = self._board_area.mapFromScene(img.pos())
-        self._img_highlit_box.move(new_pos)
-        self._img_highlit_box.setSize(img.size(), self._board_area.getScale())
+        self._img_highlight_box.move(new_pos)
+        self._img_highlight_box.setSize(img.size(), self._board_area.getScale())
 
     def viewportOffsetToScenePosition(self, offset: QPoint) -> QPoint:
         scene_pos = self._board_area.mapToScene(offset)
@@ -415,17 +423,17 @@ class ReferenceBoardView(QMainWindow):
             self._img_name_label.setText(img_name)
             self.updateImageHighlightBox(img_name)
             self._img_name_label.show()
-            self._img_highlit_box.show()
+            self._img_highlight_box.show()
         else:
             self._img_name_label.hide()
-            self._img_highlit_box.hide()
+            self._img_highlight_box.hide()
 
     def getCurrentViewScale(self) -> float:
         return self._board_area._scale
 
     def setCurrentViewScale(self, scale: float):
-        self._board_area._scale = scale
-        self._board_area.scaleView()
+        #self._board_area._scale = 
+        self._board_area.scaleView(scale)
 
     def getSceneCenter(self):
         return self._board_area.center()
@@ -434,7 +442,14 @@ class ReferenceBoardView(QMainWindow):
         # print(f"current center: {self._board_area.center()}")
         self._board_area.moveCenterBy(QPoint(int(x), int(y)))
         # print(f"updated center: {self._board_area.center()}")
-    
+
+    def fitIntoView(self) -> None:
+        rect = self._board_scene.itemsBoundingRect()
+        self._board_area.fitInView(rect, Qt.AspectRatioMode.KeepAspectRatio)
+
+    def resetZoom(self) -> None :
+        self.setCurrentViewScale(1)
+
 class BoardGraphicView(QGraphicsView):
     _scale: float = 1.0
     _pan_start: QPoint
@@ -447,9 +462,12 @@ class BoardGraphicView(QGraphicsView):
         self.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
         self.setRenderHint(QPainter.RenderHint.HighQualityAntialiasing)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        
+
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+
         #print(f"Board view scale: {self._scale}")
-        self.scaleView()
+        #self.scaleView()
 
     def getScale(self) -> float:
         return self._scale
@@ -510,7 +528,7 @@ class BoardGraphicView(QGraphicsView):
         )
         self.moveCenterBy(drag_scene)
 
-    def moveCenterBy(self, delta: QPoint):
+    def moveCenterBy(self, delta: QPointF):
         visible_scene_rect = self.mapToScene(self.viewport().rect()).boundingRect()
         moved_visible_rect = visible_scene_rect.translated(delta)
         scene_rect = self.sceneRect()
@@ -521,7 +539,7 @@ class BoardGraphicView(QGraphicsView):
         new_center = visible_scene_rect.center() + delta
         self.centerOn(new_center)
 
-    def center(self) -> QPoint:
+    def center(self) -> QPointF:
         visible_scene_rect = self.mapToScene(self.viewport().rect()).boundingRect()
         return visible_scene_rect.center()
         #return self.viewport().rect().center()
@@ -557,11 +575,11 @@ class BoardGraphicView(QGraphicsView):
                 new_scale = max_scale
 
             #print(f"(NEW) Board view scale: {new_scale}")
-            self._scale = new_scale
-            self.scaleView()
+            self.scaleView(new_scale)
             self.parent().inner_updateImageHighlightBox()
 
-    def scaleView(self):
+    def scaleView(self, scale: float | int) -> None:
+        self._scale = scale
         self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
         transform = QTransform()
         transform.scale(self._scale, self._scale)
@@ -570,6 +588,13 @@ class BoardGraphicView(QGraphicsView):
 
     def ignoreEvents(self, ignore: bool = True) -> None:
         self._ignore_mouse_event = ignore
+
+    def fitInView(self, rect: QRectF, mode: Qt.AspectRatioMode = Qt.IgnoreAspectRatio):
+        super().fitInView(rect, mode)
+        transformation = self.transform()
+        print(f"scaling factors: x={transformation.m11()}, y={transformation.m22()}")
+        # self.setCurrentViewScale(transformation.m11())
+        self._scale = transformation.m11()
 
 
 def _debug_Point(p: QPoint) -> str:
