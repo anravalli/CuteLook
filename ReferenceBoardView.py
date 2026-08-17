@@ -222,25 +222,24 @@ class ReferenceBoardView(QMainWindow):
         QMessageBox.warning(self, title, message)
 
     def showHideImages(self) -> None:
-        action = self._board_actions["show_hide_image"]
+        action_name = "show_hide_image"
         if self._image_hidden:
             for image in self._opened_images.values():
                 image.show()
             self._image_hidden = False
-            action.action.setIcon(action.icon)
+            self._menu_factory.set_action_icon_index(action_name, 0)
         else:
             for image in self._opened_images.values():
                 image.hide()
             self._image_hidden = True
-            action.action.setIcon(action.icon2)
+            self._menu_factory.set_action_icon_index(action_name, 1)
             self._img_highlight_box.hide()
             self._img_name_label.hide()
 
     def setImageHide(self) -> None:
         #FIXME: manually hiding all images should have the same effect of calling "showHideImages"
         self._image_hidden = True
-        action = self._board_actions["show_hide_image"]
-        action.action.setIcon(action.icon3)
+        self._menu_factory.set_action_icon_index("show_hide_image", 2)
         self._img_highlight_box.hide()
         self._img_name_label.hide()
 

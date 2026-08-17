@@ -1,8 +1,7 @@
-import json
 import typing
-from enum import Enum
 
 from PyQt5.QtWidgets import (
+    QWidget,
     QMainWindow,
     QAction,
     QToolBar,
@@ -28,22 +27,18 @@ class BoardActionsListModel(BaseModel):
     actions_list: list[BoardActionBaseModel] = []
 
 class ReferenceBoardAction:
-    custom_icon: list[QIcon]
-    theme_icon: list[QIcon]
+    icons: list[QIcon]
     action: QAction
-    text: str = ""
-    tooltip: str = ""
 
-    def __init__(self):
-        self.custom_icon = []
-        self.theme_icon = []
-        self.action = None
-        self.text = ""
-        self.tooltip = ""
-
-    # def __init__(self, action: BoardActionBaseModel):
-    #     self.custom_icon = action.custom_icon
-    #     self.theme_icon = action.theme_icon
+    def __init__(self, action_cfg: BoardActionConfigModel, parent: QWidget, use_theme_icon: bool = False):
+        icons = action_cfg.custom_icon
+        self.icons = []
+        if use_theme_icon:
+            icons = action_cfg.theme_icon
+        for icon in icons:
+            self.icons.append(QIcon(icon))
+        self.action = QAction(self.icons[0], action_cfg.text, parent)
+        self.action.setStatusTip(action_cfg.tooltip)
 
 
 class ReferenceBoardMenuFactory:
@@ -62,10 +57,7 @@ class ReferenceBoardMenuFactory:
         self._toolbar.setIconSize(QSize(24, 16))
 
         # create actions
-        self.load_action_config()
-        self.__init_actions()
-        self.__configure_board_actions()
-        self.__create_actions(parent)
+        self.__load_action_config(parent)
         # add actions to toolbar
         for board_action in self._board_actions.values():
             if board_action is None:
@@ -73,23 +65,28 @@ class ReferenceBoardMenuFactory:
                 continue
             self._toolbar.addAction(board_action.action)
 
+        # add actions to context menu
         self._context_menu = QMenu(parent)
         for board_action in self._board_actions.values():
             if board_action is None:
                 self._context_menu.addSeparator()
                 continue
-            # print(f'--- action instance: {board_action.action}"')
             self._context_menu.addAction(board_action.action)
 
-    def load_action_config(self):
-        #json_actions = {}
+    def __load_action_config(self, parent: QWidget):
         with open("./BoardActionsConfig.json", "r", encoding="utf-8") as f:
             json_actions = f.read()
         board_actions_model = BoardActionsListModel.model_validate_json(json_actions)
-        print(f"dump the complete action list: \n\t{board_actions_model}")
+        separator_index = 0
         for action in board_actions_model.actions_list:
-            print(f"dump {action.action_name} action: \n\t {action.action_cfg}")
-
+            # print(f"configuring {action.action_name} \n\t action: {action.action_cfg}")
+            if action.action_name == "separator":
+                sep = f"{action.action_name}{separator_index}"
+                # print(f"adding separator: {sep}")
+                self._board_actions[sep] = None
+                separator_index =+ 1
+            else:
+                self._board_actions[action.action_name] = ReferenceBoardAction(action.action_cfg, parent)
 
     def connect(self, action_key: str, callback: typing.Callable[[], None]):
         try:
@@ -98,103 +95,13 @@ class ReferenceBoardMenuFactory:
         except KeyError as e:
             print(e)
 
-    def __configure_board_actions(self) -> None:
-        # add icons based on the current configuration
-        if self._use_os_theme:
-            # print("calling addBoardActionsIconsFromTheme")
-            self.__add_theme_icons_to_actions()
+    def set_action_icon_index(self, action_name: str, index: int):
+        action = self._board_actions[action_name].action
+        icon_list = self._board_actions[action_name].icons
+        if index < len(icon_list):
+            action.setIcon(icon_list[index])
         else:
-            # print("calling initBoardActions")
-            self.__add_custom_icons_to_actions()
-
-
-    def __init_actions(self) -> None:
-        # TODO read actions configuration from some configuration resource
-        # print("initBoardActions")
-        self._board_actions["new_board"] = ReferenceBoardAction()
-        self._board_actions["new_board"].text = "New Board"
-        self._board_actions["new_board"].tooltip = "Create a new board"
-
-        self._board_actions["open_board"] = ReferenceBoardAction()
-        self._board_actions["open_board"].text = "Open Board"
-        self._board_actions["open_board"].tooltip = "Open an existing board"
-
-        self._board_actions["save_board"] = ReferenceBoardAction()
-        self._board_actions["save_board"].text = "Save Board"
-        self._board_actions["save_board"].tooltip = "Save current board"
-
-        self._board_actions["save_as_board"] = ReferenceBoardAction()
-        self._board_actions["save_as_board"].text = "Save Board As"
-        self._board_actions["save_as_board"].tooltip = "Save current board copy"
-
-        self._board_actions["close_board"] = ReferenceBoardAction()
-        self._board_actions["close_board"].text = "Close Board"
-        self._board_actions["close_board"].tooltip = "Close current board"
-
-        self._board_actions["separator"] = None
-
-        self._board_actions["add_image"] = ReferenceBoardAction()
-        self._board_actions["add_image"].text = "Add Image"
-        self._board_actions["add_image"].tooltip = "Add a new reference image"
-
-        self._board_actions["show_hide_image"] = ReferenceBoardAction()
-        self._board_actions["show_hide_image"].text = "Show/Hide Images"
-        self._board_actions["show_hide_image"].tooltip = "Show/Hide all images"
-
-        self._board_actions["separator2"] = None
-
-        self._board_actions["fit_to_view"] = ReferenceBoardAction()
-        self._board_actions["fit_to_view"].text = "Fit to screen"
-        self._board_actions["fit_to_view"].tooltip = "Zoom in/out to make all images visibles"
-
-        self._board_actions["reset_zoom"] = ReferenceBoardAction()
-        self._board_actions["reset_zoom"].text = "Reset Zoom"
-        self._board_actions["reset_zoom"].tooltip = "Reset the zoom level"
-
-    def __add_custom_icons_to_actions(self) -> None:
-        # print("addBoardActionsIconsCustom")
-        self._board_actions["new_board"].custom_icon.append(QIcon("icons/add-document.svg"))
-        # print(f"new_board num of icons: {len(self._board_actions["new_board"].custom_icon)}")
-        self._board_actions["open_board"].custom_icon.append(QIcon("icons/folder-open.svg"))
-        self._board_actions["close_board"].custom_icon.append(QIcon("icons/cross.svg"))
-        self._board_actions["save_board"].custom_icon.append(QIcon("icons/disk.svg"))
-        self._board_actions["save_as_board"].custom_icon.append(QIcon("icons/floppy-disk-pen.svg"))
-        self._board_actions["add_image"].custom_icon.append(QIcon("icons/add-image.svg"))
-        self._board_actions["show_hide_image"].custom_icon.append(QIcon("icons/eye.svg"))
-        self._board_actions["show_hide_image"].custom_icon.append(QIcon("icons/eye-crossed.svg"))
-        self._board_actions["show_hide_image"].custom_icon.append(QIcon("icons/low-vision.svg"))
-        self._board_actions["fit_to_view"].custom_icon.append(QIcon("icons/dark_zoom-fit.svg"))
-        self._board_actions["reset_zoom"].custom_icon.append(QIcon("icons/dark_zoom-100.svg"))
-        # print(f"new_board num of icons: {len(self._board_actions["new_board"].custom_icon)}")
-        #print(f"actions: {json.dumps(self._board_actions)}")
-
-    def __add_theme_icons_to_actions(self) -> None:
-        self._board_actions["new_board"].theme_icon.append(QIcon.fromTheme(
-            "document-new", QIcon("icons/"))
-        )
-        self._board_actions["open_board"].theme_icon.append(QIcon.fromTheme(
-            "document-new", QIcon("icons/"))
-        )
-        self._board_actions["close_board"].theme_icon.append(QIcon.fromTheme(
-            "document-new", QIcon("icons/"))
-        )
-        self._board_actions["save_board"].theme_icon.append(QIcon.fromTheme(
-            "document-save", QIcon("icons/save.png"))
-        )
-        self._board_actions["save_as_board"].theme_icon.append(QIcon.fromTheme(
-            "document-new", QIcon("icons/"))
-        )
-
-    def __create_actions(self, parent: QMainWindow) -> None:
-        # print("createBoardActions")
-        for board_action in self._board_actions.values():
-            if board_action is not None:
-                print(f'action "{board_action.text}"')
-                board_action.action = QAction(
-                    board_action.custom_icon[0], board_action.text, parent
-                )
-                board_action.action.setStatusTip(board_action.tooltip)
-                # print(f'action instance: {board_action.action}"')
+            print(f"WARNING: no icon for {action_name} at index {index}")
 
     def append_additional_actions(self, parent:QMainWindow, caption: str, callback: typing.Callable[[], None]):
         self._context_menu.addSeparator()
