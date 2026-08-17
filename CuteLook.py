@@ -63,7 +63,6 @@ class CuteLook:
 
         # 3. create the controller
         new_board = ReferenceBoard(new_board_id, board_model, board_view)
-        new_board.updateModifiedStatus(is_new) # new empty boards shouldn't be marked as "modified"
         new_board._is_new = is_new
         new_board.setBoardPath(board_path)
 
