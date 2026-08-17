@@ -1,0 +1,131 @@
+{
+  "actions_list": [
+    {
+      "action_name": "new_board",
+      "action_cfg": {
+        "text": "New Board",
+        "tooltip": "Create a new board",
+        "custom_icon": [
+          "icons/add-document.svg"
+        ],
+        "theme_icon": [
+          "document-new"
+        ]
+      }
+    },
+    {
+      "action_name": "open_board",
+      "action_cfg": {
+        "text": "Open Board",
+        "tooltip": "Open an existing board",
+        "custom_icon": [
+          "icons/folder-open.svg"
+        ],
+        "theme_icon": [
+          "document-open"
+        ]
+      }
+    },
+    {
+      "action_name": "save_board",
+      "action_cfg": {
+        "text": "Save Board",
+        "tooltip": "Save current board",
+        "custom_icon": [
+          "icons/disk.svg"
+        ],
+        "theme_icon": [
+          "document-save"
+        ]
+      }
+    },
+    {
+     "action_name": "save_as_board",
+      "action_cfg": {
+        "text": "Save Board As",
+        "tooltip": "Save current board copy",
+        "custom_icon": [
+          "icons/floppy-disk-pen.svg"
+        ],
+        "theme_icon": [
+          "document-save-as"
+        ]
+      }
+    },
+    {
+      "action_name": "close_board",
+      "action_cfg": {
+        "text": "Close Board",
+        "tooltip": "Close current board",
+        "custom_icon": [
+          "icons/cross.svg"
+        ],
+        "theme_icon": [
+          "document-close"
+        ]
+      }
+    },
+    {
+      "action_name": "separator"
+
+    },
+    {
+      "action_name": "add_image",
+      "action_cfg": {
+        "text": "Add Image",
+        "tooltip": "Add a new reference image",
+        "custom_icon": [
+          "icons/add-image.svg"
+        ],
+        "theme_icon": [
+          ""
+        ]
+      }
+    },
+    {
+      "action_name": "show_hide_image",
+      "action_cfg": {
+        "text": "Show/Hide Images",
+        "tooltip": "Show/Hide all images",
+        "custom_icon": [
+          "icons/eye.svg",
+          "icons/eye-crossed.svg",
+          "icons/low-vision.svg"
+        ],
+        "theme_icon": [
+          ""
+        ]
+      }
+    },
+    {
+      "action_name": "separator2",
+      "action_cfg": {}
+    },
+    {
+      "action_name": "fit_to_view",
+      "action_cfg": {
+        "text": "Fit to screen",
+        "tooltip": "Zoom in/out to make all images visibles",
+        "custom_icon": [
+          "icons/dark_zoom-fit.svg"
+        ],
+        "theme_icon": [
+          ""
+        ]
+      }
+    },
+    {
+      "action_name": "reset_zoom",
+      "action_cfg": {
+        "text": "Reset Zoom",
+        "tooltip": "Reset the zoom level",
+        "custom_icon": [
+          "icons/dark_zoom-100.svg"
+        ],
+        "theme_icon": [
+          ""
+        ]
+      }
+    }
+  ]
+}

@@ -5,19 +5,16 @@ from PyQt5.QtWidgets import (
     QMainWindow,
     QFileDialog,
     QMessageBox,
-    QAction,
     QToolBar,
-    QMenu,
     QGraphicsView,
     QGraphicsScene, QGraphicsProxyWidget,
 )
 from PyQt5.QtGui import (
     QCloseEvent,
-    QIcon,
     QCursor,
     QGuiApplication,
     QTransform,
-    QPainter,
+    QPainter, QResizeEvent,
 )
 from PyQt5.QtCore import Qt, QSize, QPoint, QRect, pyqtSignal, QRectF, QPointF
 
@@ -28,23 +25,17 @@ from CustomWidgets import FloatingLineEdit, SelectionBox, OverlayLabel
 from ReferenceBoardModels import ReferenceImageModel
 from UnitTesting import RunTest
 
-
-class ReferenceBoardAction:
-    icon: QIcon = None
-    action: QAction = None
-    text: str = ""
-    tooltip: str = ""
-
+from ReferenceBoardActions import ReferenceBoardMenuFactory
 
 class ReferenceBoardView(QMainWindow):
     _opened_images: dict[str, QGraphicsProxyWidget] = None
     _image_hidden: bool = False
-    _use_os_theme: bool = False
-    _board_actions: dict[str, ReferenceBoardAction] = None
 
     board_id: int = 0
     _board_area: BoardGraphicView = None
     _board_scene: QGraphicsScene = None
+
+    _menu_factory:  ReferenceBoardMenuFactory = None
     _context_menu_pos: QPoint = None
     _toolbar: QToolBar = None
 
@@ -63,7 +54,6 @@ class ReferenceBoardView(QMainWindow):
     def __init__(self, board_id: int):
         super().__init__()
 
-        self._board_actions = {}
         self._opened_images = {}
         self._board_id = board_id
 
@@ -75,29 +65,30 @@ class ReferenceBoardView(QMainWindow):
 
         self.setCentralWidget(self._board_area)
 
-        self._toolbar = self.createToolbar()
-        # connect actions signals do board callbacks
-        self._board_actions["new_board"].action.triggered.connect(self.newBoard)
-        self._board_actions["open_board"].action.triggered.connect(self.openBoard)
-        self._board_actions["close_board"].action.triggered.connect(self.closeBoard)
-        self._board_actions["save_board"].action.triggered.connect(self.saveBoard)
-        self._board_actions["save_as_board"].action.triggered.connect(self.saveBoardAs)
-        self._board_actions["add_image"].action.triggered.connect(self.openImage)
-        self._board_actions["show_hide_image"].action.triggered.connect(self.showHideImages)
-        self._board_actions["fit_to_view"].action.triggered.connect(self.fitIntoView)
-        self._board_actions["reset_zoom"].action.triggered.connect(self.resetZoom)
+        self._menu_factory = ReferenceBoardMenuFactory(self)
+        self._toolbar = self._menu_factory.toolbar
 
+        # connect actions signals do board callbacks
+        self._menu_factory.connect("new_board", self.newBoard)
+        self._menu_factory.connect("open_board", self.openBoard)
+        # self.addOpenSubMenu(self._board_actions["open_board"].action)
+        self._menu_factory.connect("close_board",self.closeBoard)
+        self._menu_factory.connect("save_board",self.saveBoard)
+        self._menu_factory.connect("save_as_board",self.saveBoardAs)
+        self._menu_factory.connect("add_image",self.openImage)
+        self._menu_factory.connect("show_hide_image",self.showHideImages)
+        self._menu_factory.connect("fit_to_view",self.fitIntoView)
+        self._menu_factory.connect("reset_zoom",self.resetZoom)
+
+        self._menu_factory.append_additional_actions(self, "Rename Board", self.renameBoard)
         self._board_area.setContextMenuPolicy(Qt.CustomContextMenu)
         self._board_area.customContextMenuRequested.connect(self.showBoardContexMenu)
 
         self._img_name_label = OverlayLabel(text="", parent=self._board_area)
         self.updateImageNameLabelPosition()
         self._img_name_label.hide()
-        self._img_highlit_box = SelectionBox(parent=self._board_area)
-        self._img_highlit_box.hide()
         self._img_highlight_box = SelectionBox(parent=self._board_area)
         self._img_highlight_box.hide()
-
 
     def updateImageNameLabelPosition(self):
         view_rect = self._board_area.rect()
@@ -105,33 +96,14 @@ class ReferenceBoardView(QMainWindow):
         ol_pos_y = int(view_rect.height() - 5 - self._img_name_label.height())
         self._img_name_label.move(ol_pos_x, ol_pos_y)
 
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
+    def resizeEvent(self, a0: QResizeEvent):
+        super().resizeEvent(a0)
         self.updateImageNameLabelPosition()
 
     def showBoardContexMenu(self, point: QPoint) -> None:
-        context_menu = QMenu(self)
-        #     context_menu.setIcon("""
-        #     QMenu::icon {
-        #         width: 0px;
-        #         margin-left: -5px;
-        #     }
-        # """)
-        for board_action in self._board_actions.values():
-            if board_action is None:
-                context_menu.addSeparator()
-                continue
-            # print(f'--- action instance: {board_action.action}"')
-            context_menu.addAction(board_action.action)
-        self.addAdditionalActions(context_menu)
+        ctx_menu = self._menu_factory.context_menu
         self._context_menu_pos = self._board_area.mapToGlobal(point)
-        context_menu.exec_(self._context_menu_pos)
-
-    def addAdditionalActions(self, context_menu: QMenu):
-        context_menu.addSeparator()
-        rename = QAction("Rename Board", self)
-        rename.triggered.connect(self.renameBoard)
-        context_menu.addAction(rename)
+        ctx_menu.exec_(self._context_menu_pos)
 
     def renameBoard(self):
         le_pos = QPoint(self._context_menu_pos.x(), QCursor.pos().y())
@@ -142,121 +114,6 @@ class ReferenceBoardView(QMainWindow):
             line_edit.hide()
 
         line_edit.returnPressed.connect(accept_input)
-
-    def createToolbar(self, themed=False) -> QToolBar:
-        toolbar = self.addToolBar("Main Toolbar")
-        toolbar.setIconSize(QSize(24, 16))
-        # toolbar.setFloatable(True)
-        # print(f"toolbar is floatable: {toolbar.isFloatable()}")
-        # create actions
-        self.configureBoardActions()
-        # add actions to toolbar
-        for board_action in self._board_actions.values():
-            if board_action is None:
-                toolbar.addSeparator()
-                continue
-            toolbar.addAction(board_action.action)
-
-        return toolbar
-
-    def configureBoardActions(self) -> None:
-        self.initBoardActions()
-
-        # add icons based on the current configuration
-        if self._use_os_theme:
-            # print("calling addBoardActionsIconsFromTheme")
-            self.addBoardActionsIconsFromTheme()
-        else:
-            # print("calling initBoardActions")
-            self.addBoardActionsIconsCustom()
-
-        # create actions
-        self.createBoardActions()
-
-    def createBoardActions(self) -> None:
-        # print("createBoardActions")
-        for board_action in self._board_actions.values():
-            if board_action is not None:
-                # print(f'action "{board_action.text}"')
-                board_action.action = QAction(
-                    board_action.icon, board_action.text, self
-                )
-                board_action.action.setStatusTip(board_action.tooltip)
-                # print(f'action instance: {board_action.action}"')
-
-    def initBoardActions(self) -> None:
-        # TODO read actions configuration from some configuration resource
-        # print("initBoardActions")
-        self._board_actions["new_board"] = ReferenceBoardAction()
-        self._board_actions["new_board"].text = "New Board"
-        self._board_actions["new_board"].tooltip = "Create a new board"
-
-        self._board_actions["open_board"] = ReferenceBoardAction()
-        self._board_actions["open_board"].text = "Open Board"
-        self._board_actions["open_board"].tooltip = "Open an existing board"
-
-        self._board_actions["save_board"] = ReferenceBoardAction()
-        self._board_actions["save_board"].text = "Save Board"
-        self._board_actions["save_board"].tooltip = "Save current board"
-
-        self._board_actions["save_as_board"] = ReferenceBoardAction()
-        self._board_actions["save_as_board"].text = "Save Board As"
-        self._board_actions["save_as_board"].tooltip = "Save current board copy"
-
-        self._board_actions["close_board"] = ReferenceBoardAction()
-        self._board_actions["close_board"].text = "Close Board"
-        self._board_actions["close_board"].tooltip = "Close current board"
-
-        self._board_actions["separator"] = None
-
-        self._board_actions["add_image"] = ReferenceBoardAction()
-        self._board_actions["add_image"].text = "Add Image"
-        self._board_actions["add_image"].tooltip = "Add a new reference image"
-
-        self._board_actions["show_hide_image"] = ReferenceBoardAction()
-        self._board_actions["show_hide_image"].text = "Show/Hide Images"
-        self._board_actions["show_hide_image"].tooltip = "Show/Hide all images"
-
-        self._board_actions["separator2"] = None
-
-        self._board_actions["fit_to_view"] = ReferenceBoardAction()
-        self._board_actions["fit_to_view"].text = "Fit to screen"
-        self._board_actions["fit_to_view"].tooltip = "Zoom in/out to make all images visibles"
-
-        self._board_actions["reset_zoom"] = ReferenceBoardAction()
-        self._board_actions["reset_zoom"].text = "Reset Zoom"
-        self._board_actions["reset_zoom"].tooltip = "Reset the zoom level"
-
-    def addBoardActionsIconsCustom(self) -> None:
-        # print("addBoardActionsIconsCustom")
-        self._board_actions["new_board"].icon = QIcon("icons/add-document.svg")
-        self._board_actions["open_board"].icon = QIcon("icons/folder-open.svg")
-        self._board_actions["close_board"].icon = QIcon("icons/cross.svg")
-        self._board_actions["save_board"].icon = QIcon("icons/disk.svg")
-        self._board_actions["save_as_board"].icon = QIcon("icons/floppy-disk-pen.svg")
-        self._board_actions["add_image"].icon = QIcon("icons/add-image.svg")
-        self._board_actions["show_hide_image"].icon = QIcon("icons/eye.svg")
-        self._board_actions["show_hide_image"].icon2 = QIcon("icons/eye-crossed.svg")
-        self._board_actions["show_hide_image"].icon3 = QIcon("icons/low-vision.svg")
-        self._board_actions["fit_to_view"].icon = QIcon("icons/dark_zoom-fit.svg")
-        self._board_actions["reset_zoom"].icon = QIcon("icons/dark_zoom-100.svg")
-
-    def addBoardActionsIconsFromTheme(self) -> None:
-        self._board_actions["new_board"].icon = QIcon.fromTheme(
-            "document-new", QIcon("icons/")
-        )
-        self._board_actions["open_board"].icon = QIcon.fromTheme(
-            "document-new", QIcon("icons/")
-        )
-        self._board_actions["close_board"].icon = QIcon.fromTheme(
-            "document-new", QIcon("icons/")
-        )
-        self._board_actions["save_board"].icon = QIcon.fromTheme(
-            "document-save", QIcon("icons/save.png")
-        )
-        self._board_actions["save_as_board"].icon = QIcon.fromTheme(
-            "document-new", QIcon("icons/")
-        )
 
     def openBoard(self) -> None:
         board_ext = ".refboard"
@@ -275,10 +132,10 @@ class ReferenceBoardView(QMainWindow):
     def closeBoard(self):
         self.close_board.emit(self._board_id)
 
-    def closeEvent(self, event: QCloseEvent):
+    def closeEvent(self, a0: QCloseEvent):
         # print(f"closeEvent - board window: {self._board_id}")
         self.close_board.emit(self._board_id)
-        event.ignore()
+        a0.ignore()
 
     def confirmClose(self) -> bool:
         reply = QMessageBox.question(
@@ -380,6 +237,7 @@ class ReferenceBoardView(QMainWindow):
             self._img_name_label.hide()
 
     def setImageHide(self) -> None:
+        #FIXME: manually hiding all images should have the same effect of calling "showHideImages"
         self._image_hidden = True
         action = self._board_actions["show_hide_image"]
         action.action.setIcon(action.icon3)
