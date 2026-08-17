@@ -100,6 +100,11 @@ class CuteLook:
     # callback for UI open_board action
     def openBoard(self, board_path: str) -> None:
         print(f"CuteLook - openBoard ({board_path})")
+        print(f"num of open boards: {len(self._boards)}")
+        if len(self._boards) == 1:
+            first_board_key = next(iter(self._boards))
+            if self._boards[first_board_key]._is_new:
+                self.closeBoard(self._boards[first_board_key]._board_id)
         self.boardFactory(board_path)
         self.updateConfigFile()
 
