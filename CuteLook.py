@@ -39,6 +39,7 @@ class CuteLook:
         board_model = None
         board_path = Path(path).resolve()
         is_new = True
+        has_name = False
 
         if board_path.exists() and board_path.is_file():
             # print(f"Opening board: {board_path}")
@@ -46,6 +47,7 @@ class CuteLook:
                 json_board = f.read()
             board_model = ReferenceBoardModel.model_validate_json(json_board)
             is_new = False
+            has_name = True
         else:
             # print("Creating new empty board")
             board_model = ReferenceBoardModel()
@@ -64,6 +66,7 @@ class CuteLook:
         # 3. create the controller
         new_board = ReferenceBoard(new_board_id, board_model, board_view)
         new_board._is_new = is_new
+        new_board._has_name = has_name
         new_board.setBoardPath(board_path)
 
         # 4. connect relevant view's signals to manager (this)

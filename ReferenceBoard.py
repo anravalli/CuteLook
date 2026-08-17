@@ -18,6 +18,7 @@ class ReferenceBoard:
     _board_path: pathlib.Path = pathlib.Path("./unknown.refboard")
     _modified: bool = False
     _is_new: bool = False
+    _has_name: bool = False
     _disable_event_filter: bool = True
     _next_z: int = 0
     _z_stack: dict[int, str] = None
@@ -65,6 +66,7 @@ class ReferenceBoard:
         if new_name != self._reference_board.board_name:
             self._reference_board.board_name = new_name
             self.updateModifiedStatus(True)
+            self._has_name = True
 
     def save(self, change_name: bool = False) -> None:
         print(f"saving board: {self._reference_board.board_name}")
@@ -82,6 +84,8 @@ class ReferenceBoard:
                 # abort
                 return
             else:
+                if not self._has_name:
+                    self._reference_board.board_name = save_to.stem
                 self._board_path = save_to
                 self._modified = True
                 self._is_new = False

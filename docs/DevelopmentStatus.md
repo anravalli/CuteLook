@@ -43,7 +43,7 @@ Status:
 - [x] image contour should be highlighted and drawn in foreground on mouse over
 - [x] image name shall be displayed at the bottom of the board view (in foregraound) on mouse over
 - [ ] implement a "recently opened boards" list and make it available through the file menu
-- [ ] set board name on save
+- [x] set board name on save
 
 ### Version 0.9.9
 Goals: Code refactoring and UI consolidation
