@@ -20,6 +20,8 @@ CustomWidgets/              Reusable widgets for image controls and editing
 
 ## Application And Board
 
+
+
 ```plantuml
 @startuml
 skinparam classAttributeIconSize 0
